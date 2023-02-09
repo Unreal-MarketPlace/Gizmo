@@ -7,6 +7,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // AGizmoCharacter
@@ -14,7 +17,7 @@
 AGizmoCharacter::AGizmoCharacter()
 {
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(40.f, 40.0f);
 
 	// set our turn rate for input
 	TurnRateGamepad = 50.f;
@@ -24,8 +27,32 @@ AGizmoCharacter::AGizmoCharacter()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	GSphere = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Sphere"));
+	GSphere->SetupAttachment(RootComponent);
+
+
+	//Gizmo
+	GPivot = CreateDefaultSubobject<USceneComponent>("PlacementPoint");
+	GPivot->SetupAttachment(RootComponent);
+
+	GArrowX = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowX"));
+	GArrowY = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowY"));
+	GArrowZ = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowZ"));
+	GArrowX->SetupAttachment(GPivot);
+	GArrowY->SetupAttachment(GPivot);
+	GArrowZ->SetupAttachment(GPivot);
+	GPitch = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Pitch"));
+	GRoll = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Roll"));
+	GYaw = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Yaw"));
+	GPitch->SetupAttachment(GPivot);
+	GRoll->SetupAttachment(GPivot);
+	GYaw->SetupAttachment(GPivot);
+
+	GizmoTool.Initilize(GArrowX, GArrowY, GArrowZ, GPitch, GRoll, GYaw, GPivot);
+	GizmoTool.SetGizmoToolVisibility(bDefaultVisibleGizmo);
+
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
@@ -35,6 +62,9 @@ AGizmoCharacter::AGizmoCharacter()
 	GetCharacterMovement()->MaxWalkSpeed = 500.f;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+	GetCharacterMovement()->BrakingDecelerationFalling = 600;
+	GetCharacterMovement()->DefaultLandMovementMode = EMovementMode::MOVE_Flying;
+	GetCharacterMovement()->DefaultWaterMovementMode = EMovementMode::MOVE_Flying;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -47,6 +77,8 @@ AGizmoCharacter::AGizmoCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	GetMesh()->DestroyComponent();
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -58,11 +90,12 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	//PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	//PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AGizmoCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AGizmoCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("MoveUp / Down", this, &AGizmoCharacter::MoveUp);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -125,5 +158,13 @@ void AGizmoCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+	}
+}
+
+void AGizmoCharacter::MoveUp(float Value)
+{
+	if (Value != 0)
+	{
+		GetMovementComponent()->AddInputVector(GetControlRotation().Quaternion().GetUpVector() * Value);
 	}
 }
