@@ -8,6 +8,7 @@
 
 class UStaticMeshComponent;
 class USceneComponent;
+class UGizmoComponent;
 
 USTRUCT(BlueprintType)
 struct FGizmo
@@ -105,12 +106,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
 	class USceneComponent* GPivot;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
+	class UGizmoComponent* GizmoComponent;
+
 
 	UPROPERTY(VisibleAnywhere, Category = "Gizmo Tool")
 	FGizmo GizmoTool;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Gizmo Tool | Debub")
-	bool bDefaultVisibleGizmo = false;
+	// Update only Instigator Client
+	UPROPERTY(ReplicatedUsing = OnRep_GizmoActor)
+	AActor* GizmoActor = NULL;
+	UFUNCTION()
+	void OnRep_GizmoActor();
+
+	// Update every Client
+	UPROPERTY(Replicated)
+	bool IsGizmoActorValid = false;
 
 public:
 
@@ -120,9 +131,21 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo Tool | Debug")
+	bool bDefaultVisibleGizmo = false;
+
+public:
+
 	// Gizmo
 	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
 	FGizmo GetGizmoTool() { return GizmoTool; }
+
+	void SetGizmoActor(AActor* GActor);
+
+protected:
+
+	UFUNCTION(Server, Reliable)
+	void SR_GizmoTrace();
 
 protected:
 
@@ -152,6 +175,8 @@ protected:
 
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+
+	void LeftMousePressed();
 
 protected:
 	// APawn interface

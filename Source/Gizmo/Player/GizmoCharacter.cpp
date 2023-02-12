@@ -9,6 +9,10 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
+#include "Net/UnrealNetwork.h"
+
+#include "Components/GizmoComponent.h"
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,7 +53,9 @@ AGizmoCharacter::AGizmoCharacter()
 	GYaw->SetupAttachment(GPivot);
 
 	GizmoTool.Initilize(GArrowX, GArrowY, GArrowZ, GPitch, GRoll, GYaw, GPivot);
-	GizmoTool.SetGizmoToolVisibility(bDefaultVisibleGizmo);
+	//GizmoTool.SetGizmoToolVisibility(bDefaultVisibleGizmo);
+
+	GizmoComponent = CreateDefaultSubobject<UGizmoComponent>(TEXT("GizmoComponent"));
 
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = false; // Character moves in the direction of input...	
@@ -83,6 +89,7 @@ AGizmoCharacter::AGizmoCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -105,6 +112,9 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AGizmoCharacter::LookUpAtRate);
 
+	// Bind Action
+	PlayerInputComponent->BindAction("LeftMouse", IE_Pressed, this, &AGizmoCharacter::LeftMousePressed);
+
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGizmoCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &AGizmoCharacter::TouchStopped);
@@ -120,6 +130,7 @@ void AGizmoCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Locati
 	StopJumping();
 }
 
+
 void AGizmoCharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
@@ -131,6 +142,9 @@ void AGizmoCharacter::LookUpAtRate(float Rate)
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
+
+
+
 
 void AGizmoCharacter::MoveForward(float Value)
 {
@@ -167,4 +181,53 @@ void AGizmoCharacter::MoveUp(float Value)
 	{
 		GetMovementComponent()->AddInputVector(GetControlRotation().Quaternion().GetUpVector() * Value);
 	}
+}
+
+void AGizmoCharacter::LeftMousePressed()
+{
+	SR_GizmoTrace();
+}
+
+
+void AGizmoCharacter::OnRep_GizmoActor()
+{
+	if (IsLocallyControlled())
+	{
+		bool bVisible = GizmoActor ? true : false;
+		if (!bDefaultVisibleGizmo)
+		{
+			GizmoTool.SetGizmoToolVisibility(bVisible);
+		}
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
+}
+
+void AGizmoCharacter::SetGizmoActor(AActor* GActor)
+{
+	GizmoActor = GActor;
+
+	IsGizmoActorValid = GizmoActor ? true : false;
+
+	// Server - Client
+	OnRep_GizmoActor();
+}
+
+
+void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActor, COND_OwnerOnly);
+	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
+
+}
+
+void AGizmoCharacter::SR_GizmoTrace_Implementation()
+{
+	if (GizmoComponent)
+	{
+		GizmoComponent->GizmoTrace();
+	}
+	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
 }
