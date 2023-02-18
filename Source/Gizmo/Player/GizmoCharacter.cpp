@@ -85,6 +85,8 @@ AGizmoCharacter::AGizmoCharacter()
 
 	GetMesh()->DestroyComponent();
 
+	GetMovementComponent()->SetIsReplicated(true);
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -189,7 +191,7 @@ void AGizmoCharacter::LeftMousePressed()
 }
 
 
-void AGizmoCharacter::OnRep_GizmoActor()
+void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 {
 	if (IsLocallyControlled())
 	{
@@ -198,26 +200,63 @@ void AGizmoCharacter::OnRep_GizmoActor()
 		{
 			GizmoTool.SetGizmoToolVisibility(bVisible);
 		}
+		GizmoComponent->AttachGizmo();
+		// 1
+		GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
+		// 2
+		GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
+	if(OldGizmoActor)
+		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep OldGName = %s"), *OldGizmoActor->GetName());
+	if(GizmoActor)
+		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep NewGName = %s"), *GizmoActor->GetName());
+	PrintLocalRole();
 }
 
 void AGizmoCharacter::SetGizmoActor(AActor* GActor)
 {
+	if(GizmoActor == GActor) return;
+	
+	// Remove Old Actor settings
+	if (GizmoActor)
+	{
+		GizmoComponent->SetGizmoActorSettings(false);
+	}
+	
+	AActor* OldGizmoActor = GizmoActor;
 	GizmoActor = GActor;
+
+	// Set New Actor settings
+	if (GizmoActor && GizmoComponent)
+	{
+		GizmoComponent->SetGizmoActorSettings(true);
+		GizmoComponent->AttachGizmo();
+	}
 
 	IsGizmoActorValid = GizmoActor ? true : false;
 
 	// Server - Client
-	OnRep_GizmoActor();
+	OnRep_GizmoActor(OldGizmoActor);
 }
 
+
+void AGizmoCharacter::PrintLocalRole()
+{
+	if (GetLocalRole() == ROLE_Authority)
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Role Authority")));
+	if (GetLocalRole() == ROLE_AutonomousProxy)
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Role AuthomousProxy")));
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Role SimulatedProxy")));
+}
 
 void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActor, COND_OwnerOnly);
+	//DOREPLIFETIME(AGizmoCharacter, GizmoActor);
 	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
 
 }

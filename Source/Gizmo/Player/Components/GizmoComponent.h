@@ -20,6 +20,11 @@ public:
 
 	void GizmoTrace();
 
+	void SetGizmoActorSettings(bool On_Off);
+
+	void AttachGizmo();
+
+	void MakeGizmoActorTranslucent(bool OnOff, AActor* GActor);
 
 protected:
 	// Called when the game starts
@@ -46,8 +51,28 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Debug")
 	bool bGizmoTraceVisible = false;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Debug")
+	bool bDebugText = true;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings ", meta = (ClampMin = 0.f, ClampMax = 1.f))
+	float GizmoActorTranslucent = 0.5;
+
 
 private:
 	
+	UPROPERTY()
+	UPrimitiveComponent* AX_GizmoActive;
+	UPROPERTY()
+	UMaterialInstanceDynamic* MD_GizmoActive;
+	UPROPERTY()
+	EGizmo GizmoTouch = EGizmo::None;
+
+	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+	void GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+
+	UPROPERTY()
+	TArray<UMaterialInstanceDynamic*> DM_GizmoActor;
+	UPROPERTY()
+	UStaticMeshComponent* SM_GizmoActor;
 		
 };

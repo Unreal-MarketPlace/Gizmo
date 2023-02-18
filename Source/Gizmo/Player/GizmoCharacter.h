@@ -4,66 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Gizmo/Gizmo.h"
 #include "GizmoCharacter.generated.h"
 
 class UStaticMeshComponent;
 class USceneComponent;
 class UGizmoComponent;
 
-USTRUCT(BlueprintType)
-struct FGizmo
-{
-	GENERATED_BODY()
 
-public:
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoArrowX;
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoArrowY;
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoArrowZ;
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoPitch;
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoRoll;
-
-	UPROPERTY(BlueprintReadOnly)
-	class UStaticMeshComponent* GizmoYaw;
-
-	UPROPERTY(BlueprintReadOnly)
-	class USceneComponent* GizmoPivot;
-
-public:
-
-	void Initilize(UStaticMeshComponent* GX, UStaticMeshComponent* GY, UStaticMeshComponent* GZ, UStaticMeshComponent* GP, UStaticMeshComponent* GR, UStaticMeshComponent* GYa, USceneComponent* GPi)
-	{
-		GizmoArrowX = GX;
-		GizmoArrowY = GY;
-		GizmoArrowZ = GZ;
-		GizmoPitch  = GP;
-		GizmoRoll   = GR;
-		GizmoYaw    = GYa;
-		GizmoPivot  = GPi;
-	}
-
-
-	void SetGizmoToolVisibility(bool bVisible)
-	{
-		GizmoArrowX->SetVisibility(bVisible);
-		GizmoArrowY->SetVisibility(bVisible);
-		GizmoArrowZ->SetVisibility(bVisible);
-		GizmoPitch->SetVisibility(bVisible);
-		GizmoRoll->SetVisibility(bVisible);
-		GizmoYaw->SetVisibility(bVisible);
-		GizmoPivot->SetVisibility(bVisible);
-	}
-	
-};
 
 UCLASS(config=Game)
 class AGizmoCharacter : public ACharacter
@@ -117,7 +65,7 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_GizmoActor)
 	AActor* GizmoActor = NULL;
 	UFUNCTION()
-	void OnRep_GizmoActor();
+	void OnRep_GizmoActor(AActor* OldGizmoActor);
 
 	// Update every Client
 	UPROPERTY(Replicated)
@@ -138,9 +86,17 @@ public:
 
 	// Gizmo
 	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
-	FGizmo GetGizmoTool() { return GizmoTool; }
+	FORCEINLINE FGizmo GetGizmoTool() { return GizmoTool; }
 
+	UFUNCTION(BlueprintPure, Category = "Gizmo")
+	FORCEINLINE AActor* GetGizmoActor() { return GizmoActor; }
+
+
+	// Call On Server side
 	void SetGizmoActor(AActor* GActor);
+
+	/******** Debug **********/
+	void PrintLocalRole();
 
 protected:
 
