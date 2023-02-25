@@ -30,29 +30,33 @@ class AGizmoCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gizmo Main", meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
 
-protected:
+public:
 
+	// Gizmo
 	// Gizmo Arrow
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GArrowX;
+		class UStaticMeshComponent* GArrowX;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GArrowY;
+		class UStaticMeshComponent* GArrowY;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GArrowZ;
+		class UStaticMeshComponent* GArrowZ;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GPitch;
+		class UStaticMeshComponent* GPitch;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GRoll;
+		class UStaticMeshComponent* GRoll;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class UStaticMeshComponent* GYaw;
+		class UStaticMeshComponent* GYaw;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-	class USceneComponent* GPivot;
+		class USceneComponent* GPivot;
+
+protected:
+
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
 	class UGizmoComponent* GizmoComponent;
@@ -91,6 +95,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
 	FORCEINLINE AActor* GetGizmoActor() { return GizmoActor; }
 
+	UFUNCTION(Client, Reliable)
+	void CL_PressedGizmoTool();
+
 
 	// Call On Server side
 	void SetGizmoActor(AActor* GActor);
@@ -104,6 +111,9 @@ protected:
 	void SR_GizmoTrace();
 
 protected:
+
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -133,6 +143,7 @@ protected:
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 	void LeftMousePressed();
+	void LeftMouseReleased();
 
 protected:
 	// APawn interface

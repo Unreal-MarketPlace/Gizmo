@@ -52,9 +52,6 @@ AGizmoCharacter::AGizmoCharacter()
 	GRoll->SetupAttachment(GPivot);
 	GYaw->SetupAttachment(GPivot);
 
-	GizmoTool.Initilize(GArrowX, GArrowY, GArrowZ, GPitch, GRoll, GYaw, GPivot);
-	//GizmoTool.SetGizmoToolVisibility(bDefaultVisibleGizmo);
-
 	GizmoComponent = CreateDefaultSubobject<UGizmoComponent>(TEXT("GizmoComponent"));
 
 	// Configure character movement
@@ -91,6 +88,15 @@ AGizmoCharacter::AGizmoCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+void AGizmoCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	GizmoTool.Initilize(GArrowX, GArrowY, GArrowZ, GPitch, GRoll, GYaw, GPivot);
+
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -116,6 +122,7 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 
 	// Bind Action
 	PlayerInputComponent->BindAction("LeftMouse", IE_Pressed, this, &AGizmoCharacter::LeftMousePressed);
+	PlayerInputComponent->BindAction("LeftMouse", IE_Released, this, &AGizmoCharacter::LeftMouseReleased);
 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGizmoCharacter::TouchStarted);
@@ -190,6 +197,24 @@ void AGizmoCharacter::LeftMousePressed()
 	SR_GizmoTrace();
 }
 
+void AGizmoCharacter::LeftMouseReleased()
+{
+	if (GizmoComponent)
+	{
+		GizmoComponent->ReleasedGizmoTool();
+	}
+}
+
+void AGizmoCharacter::SR_GizmoTrace_Implementation()
+{
+	if (GizmoComponent)
+	{
+		GizmoComponent->GizmoTrace();
+	}
+	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
+	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
+}
+
 
 void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 {
@@ -205,6 +230,8 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 		GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
 		// 2
 		GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
+
+		GizmoComponent->SetGizmoInputMode(true /* ActiveGizmo Mode */);
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
 	if(OldGizmoActor)
@@ -212,6 +239,14 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 	if(GizmoActor)
 		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep NewGName = %s"), *GizmoActor->GetName());
 	PrintLocalRole();
+}
+
+void AGizmoCharacter::CL_PressedGizmoTool_Implementation()
+{
+	if (GizmoComponent)
+	{
+		GizmoComponent->PressedGizmoTool();
+	}
 }
 
 void AGizmoCharacter::SetGizmoActor(AActor* GActor)
@@ -259,14 +294,4 @@ void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& Ou
 	//DOREPLIFETIME(AGizmoCharacter, GizmoActor);
 	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
 
-}
-
-void AGizmoCharacter::SR_GizmoTrace_Implementation()
-{
-	if (GizmoComponent)
-	{
-		GizmoComponent->GizmoTrace();
-	}
-	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
-	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
 }

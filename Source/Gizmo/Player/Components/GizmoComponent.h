@@ -26,9 +26,16 @@ public:
 
 	void MakeGizmoActorTranslucent(bool OnOff, AActor* GActor);
 
+	void SetGizmoInputMode(bool IsGizmoActive);
+	void PressedGizmoTool();
+	void ReleasedGizmoTool();
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
+	void SetGizmoMaterial();
+	void ActivateGizmo(EGizmo ActiveTouch, bool DoActive);
 
 public:	
 	// Called every frame
@@ -38,9 +45,12 @@ private:
 
 	bool CanGizmoAttach(const FHitResult& Hit);
 
+	void CoursorTrace(FHitResult& Hit);
+
 protected:
 
 	AGizmoCharacter* OwnerCharacter;
+	APlayerController* OwnerController;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
 	float GizmoTraceDistance = 1000.f;
@@ -61,10 +71,6 @@ protected:
 private:
 	
 	UPROPERTY()
-	UPrimitiveComponent* AX_GizmoActive;
-	UPROPERTY()
-	UMaterialInstanceDynamic* MD_GizmoActive;
-	UPROPERTY()
 	EGizmo GizmoTouch = EGizmo::None;
 
 	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
@@ -74,5 +80,20 @@ private:
 	TArray<UMaterialInstanceDynamic*> DM_GizmoActor;
 	UPROPERTY()
 	UStaticMeshComponent* SM_GizmoActor;
+
+
+	//
+	FVector2D MouseTouchPoint = FVector2D::ZeroVector;
+	FVector TouchLocation = FVector::ZeroVector;
+	FVector TouchDirection = FVector::ZeroVector;
+
+
+
+	UMaterialInstanceDynamic* MD_GizmoX;
+	UMaterialInstanceDynamic* MD_GizmoY;
+	UMaterialInstanceDynamic* MD_GizmoZ;
+	UMaterialInstanceDynamic* MD_GizmoPitch;
+	UMaterialInstanceDynamic* MD_GizmoRoll;
+	UMaterialInstanceDynamic* MD_GizmoYaw;
 		
 };

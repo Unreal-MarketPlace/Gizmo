@@ -4,6 +4,7 @@
 #include "Gizmo/Player/Components/GizmoComponent.h"
 
 #include "DrawDebugHelpers.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values for this component's properties
 UGizmoComponent::UGizmoComponent()
@@ -27,9 +28,12 @@ void UGizmoComponent::BeginPlay()
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->GetGizmoTool().SetGizmoToolVisibility(OwnerCharacter->bDefaultVisibleGizmo);
+		SetGizmoMaterial();
+		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
 	}
 	
 }
+
 
 
 // Called every frame
@@ -47,6 +51,7 @@ bool UGizmoComponent::CanGizmoAttach(const FHitResult& Hit)
 	else
 		return false;
 }
+
 
 
 
@@ -91,6 +96,18 @@ void UGizmoComponent::GizmoTrace()
 	}
 	else
 	{
+		if (OwnerCharacter->GetGizmoActor())
+		{
+			if (UKismetSystemLibrary::IsServer(OwnerCharacter))
+			{
+				PressedGizmoTool();
+			}
+			else
+			{
+				OwnerCharacter->CL_PressedGizmoTool();
+			}
+		}
+
 		//OwnerCharacter->SetGizmoActor(NULL);
 	}
 
@@ -151,6 +168,80 @@ void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor)
 
 
 
+void UGizmoComponent::SetGizmoInputMode(bool IsGizmoActive)
+{
+	if (IsGizmoActive)
+	{
+		FInputModeGameAndUI Mode;
+		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+
+		OwnerController->SetInputMode(Mode);
+		OwnerController->bShowMouseCursor = true;
+	}
+	else
+	{
+		FInputModeGameOnly Mode;
+		OwnerController->SetInputMode(Mode);
+		OwnerController->bShowMouseCursor = false;
+	}
+}
+
+void UGizmoComponent::PressedGizmoTool()
+{
+	FHitResult Hit;
+	CoursorTrace(Hit);
+
+	if (Hit.GetComponent() && Hit.GetComponent()->GetAttachmentRootActor() && Hit.GetComponent()->GetAttachmentRootActor() == OwnerCharacter->GetGizmoActor())
+	{
+
+	}
+
+	GizmoTouch = OwnerCharacter->GetGizmoTool().GetGizmoTouch(Hit.GetComponent());
+	ActivateGizmo(GizmoTouch, true);
+}
+
+void UGizmoComponent::ReleasedGizmoTool()
+{
+	ActivateGizmo(GizmoTouch, false);
+	GizmoTouch = EGizmo::None;
+}
+
+void UGizmoComponent::CoursorTrace(FHitResult& Hit)
+{
+	if(!OwnerCharacter) return;
+
+	bool bPressed;
+
+	if(!OwnerController)
+		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	bPressed = OwnerController->GetMousePosition(OUT MouseTouchPoint.X, OUT MouseTouchPoint.Y);
+	OwnerController->DeprojectScreenPositionToWorld(MouseTouchPoint.X, MouseTouchPoint.Y, OUT TouchLocation, OUT TouchDirection);
+
+	FVector Start = TouchLocation;
+	FVector End = TouchLocation + (TouchDirection * GizmoTraceDistance);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.bTraceComplex = true;
+	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);
+
+	if (Hit.GetComponent())
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Touch Axis = %s"), *Hit.GetComponent()->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Not Found Gizmo"));
+	}
+
+	if (bGizmoTraceVisible)
+		DrawDebugLine(GetWorld(), Start, End, FColor(0, 255, 0), false, 10.f, 0.f, 5.f);
+}
+
+
+
+
 void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
 {
 	if (OnOff && GizmoMesh)
@@ -200,3 +291,75 @@ void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UM
 }
 
 
+
+
+
+void UGizmoComponent::SetGizmoMaterial()
+{
+	MD_GizmoX = OwnerCharacter->GArrowX->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowX->GetMaterial(0));
+	MD_GizmoY = OwnerCharacter->GArrowY->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowY->GetMaterial(0));
+	MD_GizmoZ = OwnerCharacter->GArrowZ->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowZ->GetMaterial(0));
+	MD_GizmoPitch = OwnerCharacter->GPitch->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GPitch->GetMaterial(0));
+	MD_GizmoRoll = OwnerCharacter->GRoll->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GRoll->GetMaterial(0));
+	MD_GizmoYaw = OwnerCharacter->GYaw->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GYaw->GetMaterial(0));
+
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::SetGizmoMaterial"));
+}
+
+
+void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, bool DoActive)
+{
+
+	float fValue = DoActive ? 1.f : 0.f;
+	switch (ActiveTouch)
+	{
+	case EGizmo::X:
+
+		if (MD_GizmoX)
+			MD_GizmoX->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed W"));
+		
+		break;
+	case EGizmo::Y:
+		
+		if (MD_GizmoY)
+			MD_GizmoY->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Y"));
+
+		break;
+	case EGizmo::Z:
+		
+		if (MD_GizmoZ)
+			MD_GizmoZ->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Z"));
+		break;
+	case EGizmo::Pitch:
+		
+		if (MD_GizmoPitch)
+			MD_GizmoPitch->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Pitch"));
+		break;
+	case EGizmo::Roll:
+		
+		if (MD_GizmoRoll)
+			MD_GizmoRoll->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Roll"));
+		break;
+	case EGizmo::Yaw:
+		
+		if (MD_GizmoYaw)
+			MD_GizmoYaw->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Yaw"));
+		break;
+	case EGizmo::None:
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed None"));
+		break;
+	}
+
+}
