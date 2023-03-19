@@ -88,6 +88,8 @@ AGizmoCharacter::AGizmoCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+
+
 void AGizmoCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -96,6 +98,16 @@ void AGizmoCharacter::BeginPlay()
 
 }
 
+
+void AGizmoCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (GizmoComponent && CanUpdateGizmoActorTransform)
+	{
+		GizmoComponent->UpdatedGizmoActorTransform(DeltaTime);
+	}
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -115,9 +127,9 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &AGizmoCharacter::Turn);
 	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AGizmoCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &AGizmoCharacter::LookUp);
 	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AGizmoCharacter::LookUpAtRate);
 
 	// Bind Action
@@ -140,14 +152,29 @@ void AGizmoCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Locati
 }
 
 
+void AGizmoCharacter::Turn(float Rate)
+{
+	if(CanUpdateGizmoActorTransform) return;
+	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+
+void AGizmoCharacter::LookUp(float Rate)
+{
+	if (CanUpdateGizmoActorTransform) return;
+	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+
+
 void AGizmoCharacter::TurnAtRate(float Rate)
 {
+	if (CanUpdateGizmoActorTransform) return;
 	// calculate delta for this frame from the rate information
 	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
 
 void AGizmoCharacter::LookUpAtRate(float Rate)
 {
+	if (CanUpdateGizmoActorTransform) return;
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
@@ -191,6 +218,7 @@ void AGizmoCharacter::MoveUp(float Value)
 		GetMovementComponent()->AddInputVector(GetControlRotation().Quaternion().GetUpVector() * Value);
 	}
 }
+
 
 void AGizmoCharacter::LeftMousePressed()
 {

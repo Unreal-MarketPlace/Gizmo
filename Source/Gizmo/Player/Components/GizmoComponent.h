@@ -30,9 +30,12 @@ public:
 	void PressedGizmoTool();
 	void ReleasedGizmoTool();
 
+	void UpdatedGizmoActorTransform(float DeltaTime);
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+
 
 	void SetGizmoMaterial();
 	void ActivateGizmo(EGizmo ActiveTouch, bool DoActive);
@@ -46,6 +49,18 @@ private:
 	bool CanGizmoAttach(const FHitResult& Hit);
 
 	void CoursorTrace(FHitResult& Hit);
+
+	float UpdateMousePosition(float CurrentPixel, float PassedPixel);
+
+	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+	void GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+
+	float GetMoveStep(EGizmo TouchAxis, float DeltaTime, float MouseDirection, float AxisDirection);
+
+	UFUNCTION(Server, Reliable)
+	void SR_UpdateGizmoActorTransform(const FTransform& NewTransform);
+
+	FString GetEnumString(const FString& EnumString, uint8 EnemElement);
 
 protected:
 
@@ -69,12 +84,18 @@ protected:
 
 
 private:
-	
-	UPROPERTY()
-	EGizmo GizmoTouch = EGizmo::None;
 
-	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
-	void GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+	// set default not used in snapping mode
+	float MoveRate = 300.f;
+	// Is multiply each movement step in Tick. In Snapping: SnappingGrid * MovePower
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Movement", meta = (ClampMin = 1.f, ClampMax = 6.f))
+	float MovePower = 2;
+	
+	/********* Gizmo Touch *********/
+	EGizmo GizmoTouch = EGizmo::None;
+	FGizmoMovementData GizmoMovementData;
+
+
 
 	UPROPERTY()
 	TArray<UMaterialInstanceDynamic*> DM_GizmoActor;
@@ -82,7 +103,7 @@ private:
 	UStaticMeshComponent* SM_GizmoActor;
 
 
-	//
+	/************** Coursor Trace *************/
 	FVector2D MouseTouchPoint = FVector2D::ZeroVector;
 	FVector TouchLocation = FVector::ZeroVector;
 	FVector TouchDirection = FVector::ZeroVector;
@@ -95,5 +116,8 @@ private:
 	UMaterialInstanceDynamic* MD_GizmoPitch;
 	UMaterialInstanceDynamic* MD_GizmoRoll;
 	UMaterialInstanceDynamic* MD_GizmoYaw;
+
+	/******* Gizmo Snapping **********/
+	float SnappingLocation;
 		
 };

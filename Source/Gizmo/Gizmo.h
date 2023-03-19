@@ -110,3 +110,46 @@ public:
 	USceneComponent* GetGizmoPivot() { return GizmoPivot; }
 
 };
+
+
+USTRUCT(BlueprintType)
+struct FGizmoMovementData
+{
+
+	GENERATED_BODY()
+
+public:
+	
+	UPROPERTY(BlueprintReadOnly)
+	float GizmoAxisDirection;
+	UPROPERTY(BlueprintReadOnly)
+	float MouseUpdateDirection;
+	UPROPERTY(BlueprintReadOnly)
+	bool IsAxisForward;
+	UPROPERTY(BlueprintReadOnly)
+	FQuat GizmoQuat = FQuat::Identity;
+	UPROPERTY(BlueprintReadOnly)
+	FVector GizmoLocation = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadOnly)
+	FTransform GizmoTransform = FTransform::Identity;
+	UPROPERTY(BlueprintReadOnly)
+	FVector2D UpdateMouseTouch;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool IsDataValid = false;
+
+public:
+
+	void ClearData()
+	{
+		GizmoAxisDirection = 0.f;
+		MouseUpdateDirection = 0.f;
+		IsAxisForward = false;
+		GizmoQuat = FQuat::Identity;
+		GizmoLocation = FVector::ZeroVector;
+		GizmoTransform = FTransform::Identity;
+		UpdateMouseTouch = FVector2D::ZeroVector;
+
+		IsDataValid = false;
+	}
+};

@@ -55,6 +55,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
 		class USceneComponent* GPivot;
 
+
+	/****** Enable GizmoActor movement *********/
+	bool CanUpdateGizmoActorTransform = false;
+
 protected:
 
 
@@ -110,6 +114,11 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void SR_GizmoTrace();
 
+public:
+
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
 protected:
 
 	// Called when the game starts or when spawned
@@ -128,6 +137,9 @@ protected:
 	 * Called via input to turn at a given rate. 
 	 * @param Rate	This is a normalized rate, i.e. 1.0 means 100% of desired turn rate
 	 */
+	 /*** PC ****/
+	void Turn(float Rate);
+	void LookUp(float Rate);
 	void TurnAtRate(float Rate);
 
 	/**

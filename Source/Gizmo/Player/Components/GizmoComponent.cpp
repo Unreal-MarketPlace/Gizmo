@@ -2,6 +2,7 @@
 
 
 #include "Gizmo/Player/Components/GizmoComponent.h"
+#include "Gizmo/Library/GizmoMathLibrary.h"
 
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -13,7 +14,6 @@ UGizmoComponent::UGizmoComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
 }
 
 
@@ -199,13 +199,123 @@ void UGizmoComponent::PressedGizmoTool()
 
 	GizmoTouch = OwnerCharacter->GetGizmoTool().GetGizmoTouch(Hit.GetComponent());
 	ActivateGizmo(GizmoTouch, true);
+
+	UGizmoMathLibrary::GetGizmoAxisDirection(GizmoTouch, Hit.ImpactPoint, OwnerCharacter, OUT GizmoMovementData, bDebugText, bGizmoTraceVisible);
+	GizmoMovementData.GizmoLocation = OwnerCharacter->GetGizmoActor()->GetActorLocation();
+	GizmoMovementData.GizmoQuat = OwnerCharacter->GetGizmoActor()->GetActorTransform().GetRotation();
+
+	OwnerCharacter->CanUpdateGizmoActorTransform = true;
 }
 
 void UGizmoComponent::ReleasedGizmoTool()
 {
+	OwnerCharacter->CanUpdateGizmoActorTransform = false;
 	ActivateGizmo(GizmoTouch, false);
 	GizmoTouch = EGizmo::None;
+	GizmoMovementData.ClearData();
 }
+
+void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
+{
+	if(!OwnerCharacter) return;
+
+	bool bPressing;
+	float moveStep;
+	bPressing = OwnerController->GetMousePosition(OUT GizmoMovementData.UpdateMouseTouch.X, OUT GizmoMovementData.UpdateMouseTouch.Y);
+
+	FString EnumString = "EGizmo";
+	FString EnumValue = GetEnumString(EnumString, (uint8)GizmoTouch);
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdatedGizmoActorTransform GizmoTouch = %s"), *EnumValue);
+
+	switch (GizmoTouch)
+	{
+	case EGizmo::X:
+		
+		if(GizmoMovementData.IsAxisForward)
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+		else
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
+			
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetForwardVector();
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+
+		break;
+	case EGizmo::Y:
+		
+		if (GizmoMovementData.IsAxisForward)
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+		else
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
+
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetRightVector();
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+
+		break;
+	case EGizmo::Z:
+
+		if (GizmoMovementData.IsAxisForward)
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+		else
+			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
+
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetUpVector();
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+
+		break;
+	case EGizmo::Pitch:
+
+		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, moveStep, 0.f);
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+		
+		break;
+	case EGizmo::Roll:
+		
+		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, moveStep, 0.f, 0.f);
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+
+		break;
+	case EGizmo::Yaw:
+
+		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
+
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, 0.f, moveStep);
+		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
+		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
+
+		break;
+	case EGizmo::None:
+	default:
+		break;
+	}
+}
+
+
+void UGizmoComponent::SR_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform)
+{
+	OwnerCharacter->GetGizmoActor()->SetActorTransform(NewTransform);
+}
+
 
 void UGizmoComponent::CoursorTrace(FHitResult& Hit)
 {
@@ -226,6 +336,8 @@ void UGizmoComponent::CoursorTrace(FHitResult& Hit)
 	QueryParams.bTraceComplex = true;
 	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);
 
+	GizmoMovementData.UpdateMouseTouch = MouseTouchPoint;
+
 	if (Hit.GetComponent())
 	{
 		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Touch Axis = %s"), *Hit.GetComponent()->GetName());
@@ -241,6 +353,31 @@ void UGizmoComponent::CoursorTrace(FHitResult& Hit)
 
 
 
+
+float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel)
+{
+	// Sum Snapping each mouse Update
+	SnappingLocation += FMath::Abs(CurrentPixel - PassedPixel);
+	//PG_LOG(Error, TEXT("UGizmoComponent::UpdateMousePosition UpldateMousePixel = %f, MouseTouchPixel = %f U - M = %f SnappingLocation = %f"), UpldateMousePixel, MouseTouchPixel, (UpldateMousePixel - MouseTouchPixel), SnappingLocation);
+	float UMD = 0;
+	if (CurrentPixel > PassedPixel)
+	{
+		UMD = 1;
+		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+	}
+	else if (CurrentPixel < PassedPixel)
+	{
+		UMD = -1;
+		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+	}
+	else
+	{
+		UMD = 0;
+		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+	}
+
+	return UMD;
+}
 
 void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
 {
@@ -292,6 +429,23 @@ void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UM
 
 
 
+float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, float MouseDirection, float AxisDirection)
+{
+	float movestep = 0.f;
+	movestep = (MoveRate * AxisDirection * MouseDirection * DeltaTime) * MovePower;
+	return movestep;
+}
+
+
+
+FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElement)
+{
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, *EnumString, true);
+	if (!EnumPtr) return FString("Invalid");
+	return EnumPtr->GetNameStringByIndex(EnemElement);
+}
+
+/************* GizmoTool Dynamic Material ****************/
 
 
 void UGizmoComponent::SetGizmoMaterial()
