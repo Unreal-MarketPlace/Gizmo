@@ -99,6 +99,15 @@ void AGizmoCharacter::BeginPlay()
 }
 
 
+
+void AGizmoCharacter::CL_SetOtherGizmoActors_Implementation(AActor* OtherGizmoActor)
+{
+	if(!GizmoComponent || !OtherGizmoActor) return;
+
+	GizmoComponent->AttachDeatachActorToGizmoActor(OtherGizmoActor);
+	
+}
+
 void AGizmoCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -135,6 +144,9 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	// Bind Action
 	PlayerInputComponent->BindAction("LeftMouse", IE_Pressed, this, &AGizmoCharacter::LeftMousePressed);
 	PlayerInputComponent->BindAction("LeftMouse", IE_Released, this, &AGizmoCharacter::LeftMouseReleased);
+	PlayerInputComponent->BindAction("CTRL", IE_Pressed, this, &AGizmoCharacter::CTRL_Pressed);
+	PlayerInputComponent->BindAction("CTRL", IE_Released, this, &AGizmoCharacter::CTRL_Released);
+	PlayerInputComponent->BindAction("Delete", IE_Pressed, this, &AGizmoCharacter::DeleteGizmoActor);
 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGizmoCharacter::TouchStarted);
@@ -233,6 +245,52 @@ void AGizmoCharacter::LeftMouseReleased()
 	}
 }
 
+void AGizmoCharacter::CTRL_Pressed()
+{
+	SR_UpdateCTRL(true);
+}
+
+void AGizmoCharacter::CTRL_Released()
+{
+	SR_UpdateCTRL(false);
+}
+
+void AGizmoCharacter::DeleteGizmoActor()
+{
+	if (!GizmoActor) return;
+
+	CanUpdateGizmoActorTransform = false;
+	GetGizmoTool().SetGizmoToolVisibility(false);
+	GetGizmoTool().GetGizmoPivot()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+	if (GizmoComponent)
+	{
+		GizmoComponent->DeleteGizmoActor();
+		GizmoComponent->SetGizmoInputMode(false /* ActiveGizmo Mode */);
+	}
+
+	SR_DeleteGizmoActor();
+}
+
+void AGizmoCharacter::SR_DeleteGizmoActor_Implementation()
+{
+	if (!GizmoActor) return;
+
+	GetGizmoTool().GetGizmoPivot()->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
+	for (AActor* OtherGActor : OtherGizmoActors)
+	{
+		OtherGActor->Destroy();
+	}
+
+	GizmoActor->Destroy();
+}
+
+void AGizmoCharacter::SR_UpdateCTRL_Implementation(bool Status)
+{
+	bCTRL = Status;
+}
+
 void AGizmoCharacter::SR_GizmoTrace_Implementation()
 {
 	if (GizmoComponent)
@@ -255,7 +313,8 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 		}
 		GizmoComponent->AttachGizmo();
 		// 1
-		GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
+		if(OldGizmoActor)
+			GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
 		// 2
 		GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
 
@@ -277,7 +336,7 @@ void AGizmoCharacter::CL_PressedGizmoTool_Implementation()
 	}
 }
 
-void AGizmoCharacter::SetGizmoActor(AActor* GActor)
+void AGizmoCharacter::SetMainGizmoActor(AActor* GActor)
 {
 	if(GizmoActor == GActor) return;
 	
@@ -304,6 +363,30 @@ void AGizmoCharacter::SetGizmoActor(AActor* GActor)
 }
 
 
+void AGizmoCharacter::SetOtherGizmoActors(AActor* OtherActor)
+{
+	if(!OtherActor || !GizmoComponent) return;
+
+	if (OtherGizmoActors.Contains(OtherActor))
+	{
+		OtherActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		GizmoComponent->SetGizmoActorSettings(false, OtherActor);
+		OtherGizmoActors.Remove(OtherActor);
+	}
+	else
+	{
+		OtherGizmoActors.Add(OtherActor);
+		OtherActor->AttachToComponent(GizmoActor->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		GizmoComponent->SetGizmoActorSettings(true, OtherActor);
+	}
+
+
+	if(IsLocallyControlled())
+		GizmoComponent->AttachDeatachActorToGizmoActor(OtherActor);
+	else
+		CL_SetOtherGizmoActors(OtherActor);
+}
+
 void AGizmoCharacter::PrintLocalRole()
 {
 	if (GetLocalRole() == ROLE_Authority)
@@ -319,6 +402,8 @@ void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActor, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, bCTRL, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, OtherGizmoActors, COND_OwnerOnly);
 	//DOREPLIFETIME(AGizmoCharacter, GizmoActor);
 	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
 

@@ -75,9 +75,15 @@ protected:
 	UFUNCTION()
 	void OnRep_GizmoActor(AActor* OldGizmoActor);
 
+	UPROPERTY(Replicated)
+	TArray<AActor*> OtherGizmoActors;
+
 	// Update every Client
 	UPROPERTY(Replicated)
 	bool IsGizmoActorValid = false;
+
+	UPROPERTY(Replicated)
+	bool bCTRL;
 
 public:
 
@@ -99,12 +105,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
 	FORCEINLINE AActor* GetGizmoActor() { return GizmoActor; }
 
+	UFUNCTION(BlueprintPure, Category = "Gizmo")
+	FORCEINLINE TArray<AActor*> GetAttachedGizmoActors() { return OtherGizmoActors; }
+
+	UFUNCTION(BlueprintPure, Category = "Gizmo")
+	FORCEINLINE bool IsControlPressed() { return bCTRL; }
+
 	UFUNCTION(Client, Reliable)
 	void CL_PressedGizmoTool();
 
 
 	// Call On Server side
-	void SetGizmoActor(AActor* GActor);
+	void SetMainGizmoActor(AActor* GActor);
+
+	// Call on Server
+	void SetOtherGizmoActors(AActor* OtherActor);
 
 	/******** Debug **********/
 	void PrintLocalRole();
@@ -113,6 +128,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void SR_GizmoTrace();
+
+	UFUNCTION(Server, Reliable)
+	void SR_UpdateCTRL(bool Status);
+
+	UFUNCTION(Client, Reliable)
+	void CL_SetOtherGizmoActors(AActor* OtherGizmoActor);
 
 public:
 
@@ -157,6 +178,13 @@ protected:
 	void LeftMousePressed();
 	void LeftMouseReleased();
 
+	void CTRL_Pressed();
+	void CTRL_Released();
+
+	void DeleteGizmoActor();
+	UFUNCTION(Server, Reliable)
+	void SR_DeleteGizmoActor();
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -167,5 +195,7 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+
 };
 

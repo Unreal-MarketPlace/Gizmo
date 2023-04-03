@@ -46,7 +46,10 @@ void UGizmoComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 bool UGizmoComponent::CanGizmoAttach(const FHitResult& Hit)
 {
-	if (Hit.bBlockingHit && Hit.GetActor() && !Hit.GetActor()->GetOwner())
+	if(!Hit.GetActor()) return false;
+	
+	AActor* GActorOwner = Hit.GetActor()->GetOwner();
+	if (Hit.bBlockingHit && Hit.GetActor() && (GActorOwner == NULL || GActorOwner == OwnerCharacter))
 		return true;
 	else
 		return false;
@@ -92,13 +95,28 @@ void UGizmoComponent::GizmoTrace()
 
 	if (CanGizmoAttach(Hit))
 	{
-		OwnerCharacter->SetGizmoActor(Hit.GetActor());
+		if (OwnerCharacter->IsControlPressed() && OwnerCharacter->GetGizmoActor())
+		{
+			OwnerCharacter->SetOtherGizmoActors(Hit.GetActor());
+		}
+		else
+		{
+			if (OwnerCharacter->GetAttachedGizmoActors().Num() > 0)
+			{
+				for (AActor* AttachedGizmoActor : OwnerCharacter->GetAttachedGizmoActors())
+				{
+					OwnerCharacter->SetOtherGizmoActors(AttachedGizmoActor);
+				}
+			}
+			OwnerCharacter->SetMainGizmoActor(Hit.GetActor());
+		}
+		
 	}
 	else
 	{
 		if (OwnerCharacter->GetGizmoActor())
 		{
-			if (UKismetSystemLibrary::IsServer(OwnerCharacter))
+			if (UKismetSystemLibrary::IsServer(OwnerCharacter) && OwnerCharacter->IsLocallyControlled())
 			{
 				PressedGizmoTool();
 			}
@@ -113,21 +131,43 @@ void UGizmoComponent::GizmoTrace()
 
 }
 
-void UGizmoComponent::SetGizmoActorSettings(bool On_Off)
+void UGizmoComponent::SetGizmoActorSettings(bool On_Off, AActor* GActor /* NULL */)
 {
-	if (On_Off)
+	if (GActor == NULL)
 	{
-		OwnerCharacter->GetGizmoActor()->SetReplicateMovement(true);
-		OwnerCharacter->GetGizmoActor()->SetReplicates(true);
-		OwnerCharacter->GetGizmoActor()->SetOwner(OwnerCharacter);
-		OwnerCharacter->GetGizmoActor()->SetNetDormancy(DORM_Awake);
+		if (On_Off)
+		{
+			OwnerCharacter->GetGizmoActor()->SetReplicateMovement(true);
+			OwnerCharacter->GetGizmoActor()->SetReplicates(true);
+			OwnerCharacter->GetGizmoActor()->SetOwner(OwnerCharacter);
+			OwnerCharacter->GetGizmoActor()->SetNetDormancy(DORM_Awake);
+		}
+		else
+		{
+			OwnerCharacter->GetGizmoActor()->SetReplicateMovement(false);
+			OwnerCharacter->GetGizmoActor()->SetReplicates(false);
+			OwnerCharacter->GetGizmoActor()->SetOwner(NULL);
+			OwnerCharacter->GetGizmoActor()->SetNetDormancy(DORM_DormantAll);
+		}
+
+		SetGizmoActorCollisionResponse(On_Off, OwnerCharacter->GetGizmoActor());
 	}
 	else
 	{
-		OwnerCharacter->GetGizmoActor()->SetReplicateMovement(false);
-		OwnerCharacter->GetGizmoActor()->SetReplicates(false);
-		OwnerCharacter->GetGizmoActor()->SetOwner(NULL);
-		OwnerCharacter->GetGizmoActor()->SetNetDormancy(DORM_DormantAll);
+		if (On_Off)
+		{
+			GActor->SetReplicateMovement(true);
+			GActor->SetReplicates(true);
+			GActor->SetOwner(OwnerCharacter);
+			GActor->SetNetDormancy(DORM_Awake);
+		}
+		else
+		{
+			GActor->SetReplicateMovement(false);
+			GActor->SetReplicates(false);
+			GActor->SetOwner(NULL);
+			GActor->SetNetDormancy(DORM_DormantAll);
+		}
 	}
 }
 
@@ -145,11 +185,13 @@ void UGizmoComponent::AttachGizmo()
 
 void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor)
 {
-	if (OnOff && GActor)
+
+	/*if (OnOff && GActor)
 	{
 		SM_GizmoActor = GActor->FindComponentByClass<UStaticMeshComponent>();
 		if (SM_GizmoActor)
 		{
+
 			SM_GizmoActor->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
 			SM_GizmoActor->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
 		}
@@ -160,13 +202,143 @@ void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor)
 		{
 			SM_GizmoActor->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 			SM_GizmoActor->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+			SM_GizmoActor = NULL;
 		}
-	}
+	}*/
+
+	SM_GizmoActor = SetGizmoActorCollisionResponse(OnOff, GActor);
+
 
 	MakeTranslucent(OnOff, SM_GizmoActor, OUT DM_GizmoActor);
 }
 
 
+UStaticMeshComponent* UGizmoComponent::SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor)
+{
+	if(!GActor) return NULL;
+
+	UStaticMeshComponent* GMesh = NULL;
+	if (OnOff)
+	{
+		GMesh = GActor->FindComponentByClass<UStaticMeshComponent>();
+
+		GMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+		GMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+	}
+	else
+	{
+		GMesh = GActor->FindComponentByClass<UStaticMeshComponent>();
+
+		GMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+		GMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
+
+		GMesh = NULL;
+	}
+
+	bool isValid = GMesh ? true : false;
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::SetGizmoActorCollisionResponse GMesh = %i"), isValid);
+
+	return GMesh;
+}
+
+
+
+void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Materials)
+{
+	if(!GActor) return;
+
+	UStaticMeshComponent* SM = GActor->FindComponentByClass<UStaticMeshComponent>();
+
+	if(!SM) return;
+
+	MakeTranslucent(OnOff, SM, OUT DM_Materials);
+}
+
+
+void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
+{
+	if (OnOff && GizmoMesh)
+	{
+
+		GetGizmoActorDM(GizmoMesh, OUT DM_Material);
+		if (DM_Material.Num() > 0)
+		{
+			for (UMaterialInstanceDynamic* DMItem : DM_Material)
+			{
+				DMItem->SetScalarParameterValue(FName("Translucent"), GizmoActorTranslucent);
+			}
+		}
+	}
+	else
+	{
+		if (DM_Material.Num() > 0)
+		{
+			for (UMaterialInstanceDynamic* DMItem : DM_Material)
+			{
+				DMItem->SetScalarParameterValue(FName("Translucent"), 1.f);
+
+			}
+			DM_Material.Empty();
+		}
+	}
+	bool isValid = GizmoMesh ? true : false;
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::MakeObjectTranslucent DM_GizmoActor Num = %i, GMesh = %i"), DM_GizmoActor.Num(), isValid);
+}
+
+
+
+void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
+{
+	if (!GizmoMesh) return;
+
+	TArray<UMaterialInterface*> MI = GizmoMesh->GetMaterials();
+
+	int32 index = 0;
+	for (auto MItem : MI)
+	{
+		UMaterialInstanceDynamic* DM = GizmoMesh->CreateAndSetMaterialInstanceDynamicFromMaterial(index, GizmoMesh->GetMaterial(index));
+		DM_Material.AddUnique(DM);
+		++index;
+		//UE_LOG(LogTemp, Error, TEXR("UGizmoComponent::GetGizmoActorDM"));
+	}
+
+}
+
+
+
+
+
+void UGizmoComponent::AttachDeatachActorToGizmoActor(AActor* OtherGizmoActor)
+{
+
+	if(!OtherGizmoActor) return;
+
+	if (TM_OtherGizmoActor.Contains(OtherGizmoActor))
+	{
+		FGizmoActorProperty* FG = TM_OtherGizmoActor.Find(OtherGizmoActor);
+		MakeGizmoActorTranslucent(false, OtherGizmoActor, FG->DM_OtherActor);
+		OtherGizmoActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		FG->ClearData();
+		TM_OtherGizmoActor.Remove(OtherGizmoActor);
+
+		if(TM_OtherGizmoActor.Num() == 0)
+			TM_OtherGizmoActor.Empty();
+	}
+	else
+	{
+		OtherGizmoActor->AttachToComponent(OwnerCharacter->GetGizmoActor()->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+
+		TArray<UMaterialInstanceDynamic*> DM;
+		MakeGizmoActorTranslucent(true, OtherGizmoActor, OUT DM);
+
+		FGizmoActorProperty GProperty;
+		GProperty.DM_OtherActor = DM;
+		GProperty.OtherGizmoObject = OtherGizmoActor;
+		TPair<AActor*, FGizmoActorProperty> Pair(OtherGizmoActor, GProperty);
+		TM_OtherGizmoActor.Add(Pair);
+	}
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::AttachDeatachActorToGizmoActor OtherGizmoActors Num = %i"), TM_OtherGizmoActor.Num());
+}
 
 void UGizmoComponent::SetGizmoInputMode(bool IsGizmoActive)
 {
@@ -311,6 +483,30 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 }
 
 
+void UGizmoComponent::DeleteGizmoActor()
+{
+	SM_GizmoActor = NULL;
+	DM_GizmoActor.Empty();
+
+	ActivateGizmo(GizmoTouch, false);
+	GizmoTouch = EGizmo::None;
+	GizmoMovementData.ClearData();
+
+	if (TM_OtherGizmoActor.Num() > 0)
+	{
+		TArray<AActor*> GActorKeys;
+		TM_OtherGizmoActor.GetKeys(GActorKeys);
+		for (AActor* GKey : GActorKeys)
+		{
+			FGizmoActorProperty* Object = TM_OtherGizmoActor.Find(GKey);
+			Object->ClearData();
+			TM_OtherGizmoActor.Remove(GKey);
+		}
+		TM_OtherGizmoActor.Empty();
+	}
+
+}
+
 void UGizmoComponent::SR_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform)
 {
 	OwnerCharacter->GetGizmoActor()->SetActorTransform(NewTransform);
@@ -377,54 +573,6 @@ float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel
 	}
 
 	return UMD;
-}
-
-void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
-{
-	if (OnOff && GizmoMesh)
-	{
-
-		GetGizmoActorDM(GizmoMesh, OUT DM_Material);
-		if (DM_GizmoActor.Num() > 0)
-		{
-			for (UMaterialInstanceDynamic* DMItem : DM_GizmoActor)
-			{
-				DMItem->SetScalarParameterValue(FName("Translucent"), GizmoActorTranslucent);
-			}
-		}
-	}
-	else
-	{
-		if (DM_GizmoActor.Num() > 0)
-		{
-			for (UMaterialInstanceDynamic* DMItem : DM_GizmoActor)
-			{
-				DMItem->SetScalarParameterValue(FName("Translucent"), 1.f);
-
-			}
-			DM_GizmoActor.Empty();
-		}
-	}
-	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::MakeObjectTranslucent DM_GizmoActor Num = %i"), DM_GizmoActor.Num());
-}
-
-
-
-void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
-{
-	if(!GizmoMesh) return;
-
-	TArray<UMaterialInterface*> MI = GizmoMesh->GetMaterials();
-
-	int32 index = 0;
-	for (auto MItem : MI)
-	{
-		UMaterialInstanceDynamic* DM = GizmoMesh->CreateAndSetMaterialInstanceDynamicFromMaterial(index, GizmoMesh->GetMaterial(index));
-		DM_GizmoActor.AddUnique(DM);
-		++index;
-		//UE_LOG(LogTemp, Error, TEXR("UGizmoComponent::GetGizmoActorDM"));
-	}
-
 }
 
 

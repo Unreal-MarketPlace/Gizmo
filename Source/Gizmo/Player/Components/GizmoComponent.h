@@ -17,20 +17,25 @@ class GIZMO_API UGizmoComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UGizmoComponent();
-
+	/********* Server ***********/
 	void GizmoTrace();
-
-	void SetGizmoActorSettings(bool On_Off);
+	void SetGizmoActorSettings(bool On_Off, AActor* GActor = NULL);
 
 	void AttachGizmo();
 
+	/********* Only Client side *********/
 	void MakeGizmoActorTranslucent(bool OnOff, AActor* GActor);
+	// For other Gizmo Actors
+	void MakeGizmoActorTranslucent(bool OnOff, AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Materials);
+	void AttachDeatachActorToGizmoActor(AActor* OtherGizmoActor);
 
 	void SetGizmoInputMode(bool IsGizmoActive);
 	void PressedGizmoTool();
 	void ReleasedGizmoTool();
 
 	void UpdatedGizmoActorTransform(float DeltaTime);
+
+	void DeleteGizmoActor();
 
 protected:
 	// Called when the game starts
@@ -54,7 +59,9 @@ private:
 
 	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
 	void GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
-
+	/* Only for MainGizmo Actor */
+	UStaticMeshComponent* SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor);
+	/* */
 	float GetMoveStep(EGizmo TouchAxis, float DeltaTime, float MouseDirection, float AxisDirection);
 
 	UFUNCTION(Server, Reliable)
@@ -101,6 +108,9 @@ private:
 	TArray<UMaterialInstanceDynamic*> DM_GizmoActor;
 	UPROPERTY()
 	UStaticMeshComponent* SM_GizmoActor;
+	
+	UPROPERTY()
+	TMap<AActor*, FGizmoActorProperty> TM_OtherGizmoActor;
 
 
 	/************** Coursor Trace *************/

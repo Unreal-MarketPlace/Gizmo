@@ -153,3 +153,22 @@ public:
 		IsDataValid = false;
 	}
 };
+
+
+USTRUCT()
+struct FGizmoActorProperty
+{
+	GENERATED_USTRUCT_BODY()
+public:
+
+	TArray<UMaterialInstanceDynamic*> DM_OtherActor;
+	AActor* OtherGizmoObject;
+
+	FGizmoActorProperty() {}
+
+	void ClearData()
+	{
+		OtherGizmoObject = nullptr;
+		DM_OtherActor.Empty();
+	}
+};
