@@ -21,7 +21,7 @@ public:
 	void GizmoTrace();
 	void SetGizmoActorSettings(bool On_Off, AActor* GActor = NULL);
 
-	void AttachGizmo();
+	void AttachDetachGizmo(bool bAttach = true);
 
 	/********* Only Client side *********/
 	void MakeGizmoActorTranslucent(bool OnOff, AActor* GActor);
@@ -37,7 +37,14 @@ public:
 
 	void DeleteGizmoActor();
 
+	void RemoveAllAttachedGizmoActor();
+
 protected:
+	
+	void RemoveAttachedGizmoActor(AActor* GActor);
+	UFUNCTION(Server, Reliable)
+	void SR_RemoveAttachedGizmoActor(AActor* GActor);
+
 	// Called when the game starts
 	virtual void BeginPlay() override;
 

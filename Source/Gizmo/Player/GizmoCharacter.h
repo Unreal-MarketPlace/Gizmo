@@ -185,6 +185,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void SR_DeleteGizmoActor();
 
+	void DropGizmoActor();
+	UFUNCTION(Server, Reliable)
+	void SR_DropGizmoActor();
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

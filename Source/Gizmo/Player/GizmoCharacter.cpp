@@ -147,6 +147,7 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("CTRL", IE_Pressed, this, &AGizmoCharacter::CTRL_Pressed);
 	PlayerInputComponent->BindAction("CTRL", IE_Released, this, &AGizmoCharacter::CTRL_Released);
 	PlayerInputComponent->BindAction("Delete", IE_Pressed, this, &AGizmoCharacter::DeleteGizmoActor);
+	PlayerInputComponent->BindAction("DropGizmoActor", IE_Pressed, this, &AGizmoCharacter::DropGizmoActor);
 
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGizmoCharacter::TouchStarted);
@@ -272,6 +273,30 @@ void AGizmoCharacter::DeleteGizmoActor()
 	SR_DeleteGizmoActor();
 }
 
+void AGizmoCharacter::DropGizmoActor()
+{
+	if (!GizmoActor) return;
+
+	// first Drop all attached actors
+	if (GizmoComponent)
+	{
+		GizmoComponent->RemoveAllAttachedGizmoActor();
+	}
+
+	SR_DropGizmoActor();
+}
+
+
+void AGizmoCharacter::SR_DropGizmoActor_Implementation()
+{
+	if(!GizmoActor) return;
+
+	OtherGizmoActors.Empty();
+
+	// Second Drop Main Gizmo Actor
+	SetMainGizmoActor(NULL);
+}
+
 void AGizmoCharacter::SR_DeleteGizmoActor_Implementation()
 {
 	if (!GizmoActor) return;
@@ -302,31 +327,6 @@ void AGizmoCharacter::SR_GizmoTrace_Implementation()
 }
 
 
-void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
-{
-	if (IsLocallyControlled())
-	{
-		bool bVisible = GizmoActor ? true : false;
-		if (!bDefaultVisibleGizmo)
-		{
-			GizmoTool.SetGizmoToolVisibility(bVisible);
-		}
-		GizmoComponent->AttachGizmo();
-		// 1
-		if(OldGizmoActor)
-			GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
-		// 2
-		GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
-
-		GizmoComponent->SetGizmoInputMode(true /* ActiveGizmo Mode */);
-	}
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
-	if(OldGizmoActor)
-		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep OldGName = %s"), *OldGizmoActor->GetName());
-	if(GizmoActor)
-		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep NewGName = %s"), *GizmoActor->GetName());
-	PrintLocalRole();
-}
 
 void AGizmoCharacter::CL_PressedGizmoTool_Implementation()
 {
@@ -340,26 +340,72 @@ void AGizmoCharacter::SetMainGizmoActor(AActor* GActor)
 {
 	if(GizmoActor == GActor) return;
 	
-	// Remove Old Actor settings
+	if (GActor)
+	{
+		// Remove Old Actor settings
+		if (GizmoActor)
+		{
+			GizmoComponent->SetGizmoActorSettings(false);
+		}
+
+		AActor* OldGizmoActor = GizmoActor;
+		GizmoActor = GActor;
+
+		// Set New Actor settings
+		if (GizmoActor && GizmoComponent)
+		{
+			GizmoComponent->SetGizmoActorSettings(true);
+			GizmoComponent->AttachDetachGizmo();
+		}
+
+		IsGizmoActorValid = GizmoActor ? true : false;
+
+		// Server - Client
+		OnRep_GizmoActor(OldGizmoActor);
+	}
+	else
+	{
+		if (GizmoComponent)
+		{
+			GizmoComponent->SetGizmoActorSettings(false);
+			GizmoComponent->AttachDetachGizmo(false);
+		}
+
+		
+		AActor* OldGizmoActor = GizmoActor;
+		GizmoActor = NULL;
+
+		// Server - Client
+		OnRep_GizmoActor(OldGizmoActor);
+	}
+}
+
+
+void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
+{
+	if (IsLocallyControlled())
+	{
+		bool bVisible = GizmoActor ? true : false;
+		if (!bDefaultVisibleGizmo)
+		{
+			GizmoTool.SetGizmoToolVisibility(bVisible);
+		}
+		GizmoComponent->AttachDetachGizmo(bVisible);
+		// 1
+		if (OldGizmoActor)
+			GizmoComponent->MakeGizmoActorTranslucent(false, OldGizmoActor);
+		// 2
+		if(GizmoActor)
+			GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
+
+		GizmoComponent->SetGizmoInputMode(bVisible /* ActiveGizmo Mode */);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
+	if (OldGizmoActor)
+		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep OldGName = %s"), *OldGizmoActor->GetName());
 	if (GizmoActor)
-	{
-		GizmoComponent->SetGizmoActorSettings(false);
-	}
-	
-	AActor* OldGizmoActor = GizmoActor;
-	GizmoActor = GActor;
-
-	// Set New Actor settings
-	if (GizmoActor && GizmoComponent)
-	{
-		GizmoComponent->SetGizmoActorSettings(true);
-		GizmoComponent->AttachGizmo();
-	}
-
-	IsGizmoActorValid = GizmoActor ? true : false;
-
-	// Server - Client
-	OnRep_GizmoActor(OldGizmoActor);
+		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep NewGName = %s"), *GizmoActor->GetName());
+	PrintLocalRole();
 }
 
 

@@ -18,6 +18,7 @@ UGizmoComponent::UGizmoComponent()
 
 
 
+
 // Called when the game starts
 void UGizmoComponent::BeginPlay()
 {
@@ -171,14 +172,24 @@ void UGizmoComponent::SetGizmoActorSettings(bool On_Off, AActor* GActor /* NULL 
 	}
 }
 
-void UGizmoComponent::AttachGizmo()
+void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 {
 	if(!OwnerCharacter->GetGizmoActor() && !OwnerCharacter->GetGizmoTool().IsGizmoValid()) return;
 
-	OwnerCharacter->GetGizmoTool().GetGizmoPivot()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
-	OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetGizmoActor()->GetTransform());
+	if (bAttach)
+	{
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetGizmoActor()->GetTransform());
 
-	OwnerCharacter->GetGizmoTool().GetGizmoPivot()->AttachToComponent(OwnerCharacter->GetGizmoActor()->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->AttachToComponent(OwnerCharacter->GetGizmoActor()->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+	}
+	else
+	{
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetTransform());
+
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->AttachToComponent(OwnerCharacter->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+	}
 }
 
 
@@ -505,6 +516,39 @@ void UGizmoComponent::DeleteGizmoActor()
 		TM_OtherGizmoActor.Empty();
 	}
 
+}
+
+void UGizmoComponent::RemoveAllAttachedGizmoActor()
+{
+	if(TM_OtherGizmoActor.Num() < 1) return;
+
+	TArray<AActor*> Keys;
+	TM_OtherGizmoActor.GetKeys(Keys);
+	for (AActor* GItem : Keys)
+	{
+		RemoveAttachedGizmoActor(GItem);
+	}
+}
+
+
+void UGizmoComponent::RemoveAttachedGizmoActor(AActor* GActor)
+{
+	if (!GActor) return;
+
+	// Detach from Server
+	SR_RemoveAttachedGizmoActor(GActor);
+
+	// Detach on Client side
+	AttachDeatachActorToGizmoActor(GActor);
+
+}
+
+
+void UGizmoComponent::SR_RemoveAttachedGizmoActor_Implementation(AActor* GActor)
+{
+	if(!GActor) return;
+	GActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+	SetGizmoActorSettings(false, GActor);
 }
 
 void UGizmoComponent::SR_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform)
