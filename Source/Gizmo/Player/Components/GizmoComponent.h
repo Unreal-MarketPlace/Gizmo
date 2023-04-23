@@ -69,7 +69,7 @@ private:
 	/* Only for MainGizmo Actor */
 	UStaticMeshComponent* SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor);
 	/* */
-	float GetMoveStep(EGizmo TouchAxis, float DeltaTime, float MouseDirection, float AxisDirection);
+	float GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGizmoMovementData& GizmoMovement);
 
 	UFUNCTION(Server, Reliable)
 	void SR_UpdateGizmoActorTransform(const FTransform& NewTransform);
@@ -95,6 +95,10 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings ", meta = (ClampMin = 0.f, ClampMax = 1.f))
 	float GizmoActorTranslucent = 0.5;
+
+	/************ Per Pixel: 0 = High Sensitve***************/
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
+	float MouseSensitive = 5.f;
 
 
 private:

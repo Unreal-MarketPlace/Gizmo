@@ -429,7 +429,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 			
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetForwardVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -443,7 +443,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetRightVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -457,7 +457,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetUpVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -468,7 +468,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, moveStep, 0.f);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -479,7 +479,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, moveStep, 0.f, 0.f);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -490,7 +490,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData.GizmoAxisDirection, GizmoMovementData.MouseUpdateDirection);
+		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, 0.f, moveStep);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -610,31 +610,40 @@ float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel
 	SnappingLocation += FMath::Abs(CurrentPixel - PassedPixel);
 	//PG_LOG(Error, TEXT("UGizmoComponent::UpdateMousePosition UpldateMousePixel = %f, MouseTouchPixel = %f U - M = %f SnappingLocation = %f"), UpldateMousePixel, MouseTouchPixel, (UpldateMousePixel - MouseTouchPixel), SnappingLocation);
 	float UMD = 0;
-	if (CurrentPixel > PassedPixel)
+
+	if (FMath::Abs(CurrentPixel - PassedPixel) > MouseSensitive)
 	{
-		UMD = 1;
-		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+		if (CurrentPixel > PassedPixel)
+		{
+			UMD = 1;
+			MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+		}
+		else if (CurrentPixel < PassedPixel)
+		{
+			UMD = -1;
+			MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+		}
+		else
+		{
+			UMD = 0;
+			MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
+		}
+
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdateMousePosition MouseUpdate // ====================================== \\"));
 	}
-	else if (CurrentPixel < PassedPixel)
-	{
-		UMD = -1;
-		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
-	}
-	else
-	{
-		UMD = 0;
-		MouseTouchPoint = GizmoMovementData.UpdateMouseTouch;
-	}
+
+	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdateMousePosition Curr = %f, Passed = %f"), CurrentPixel, PassedPixel);
+	//UE_LOG(LogTemp, Warning, TEXT("UGizmoComponent::UpdateMousePosition Abs Curr - Pass = %f"), FMath::Abs(CurrentPixel - PassedPixel));
 
 	return UMD;
 }
 
 
 
-float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, float MouseDirection, float AxisDirection)
+float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGizmoMovementData& GizmoMovement)
 {
 	float movestep = 0.f;
-	movestep = (MoveRate * AxisDirection * MouseDirection * DeltaTime) * MovePower;
+	movestep = (MoveRate * GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * DeltaTime) * MovePower;
 	return movestep;
 }
 
