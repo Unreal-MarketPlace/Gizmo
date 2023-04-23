@@ -106,10 +106,12 @@ void UGizmoComponent::GizmoTrace()
 			{
 				for (AActor* AttachedGizmoActor : OwnerCharacter->GetAttachedGizmoActors())
 				{
+					// Remove Attached actors
 					OwnerCharacter->SetOtherGizmoActors(AttachedGizmoActor);
 				}
 			}
-			OwnerCharacter->SetMainGizmoActor(Hit.GetActor());
+			EGizmoActiveStatus GActive = OwnerCharacter->GetGizmoActor() ? EGizmoActiveStatus::Change : EGizmoActiveStatus::Attached;
+			OwnerCharacter->SetMainGizmoActor(Hit.GetActor(), GActive);
 		}
 		
 	}
@@ -136,6 +138,7 @@ void UGizmoComponent::SetGizmoActorSettings(bool On_Off, AActor* GActor /* NULL 
 {
 	if (GActor == NULL)
 	{
+		if(!OwnerCharacter->GetGizmoActor()) return;
 		if (On_Off)
 		{
 			OwnerCharacter->GetGizmoActor()->SetReplicateMovement(true);
@@ -176,7 +179,7 @@ void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 {
 	if(!OwnerCharacter->GetGizmoActor() && !OwnerCharacter->GetGizmoTool().IsGizmoValid()) return;
 
-	if (bAttach)
+	if (bAttach && OwnerCharacter->GetGizmoActor())
 	{
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->DetachFromComponent(FDetachmentTransformRules::KeepRelativeTransform);
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetGizmoActor()->GetTransform());
@@ -388,6 +391,12 @@ void UGizmoComponent::PressedGizmoTool()
 	GizmoMovementData.GizmoQuat = OwnerCharacter->GetGizmoActor()->GetActorTransform().GetRotation();
 
 	OwnerCharacter->CanUpdateGizmoActorTransform = true;
+
+	if (GizmoTouch != EGizmo::None)
+	{
+		OwnerCharacter->BP_GizmoTouch(true);
+	}
+
 }
 
 void UGizmoComponent::ReleasedGizmoTool()
@@ -396,6 +405,7 @@ void UGizmoComponent::ReleasedGizmoTool()
 	ActivateGizmo(GizmoTouch, false);
 	GizmoTouch = EGizmo::None;
 	GizmoMovementData.ClearData();
+	OwnerCharacter->BP_GizmoTouch(false);
 }
 
 void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)

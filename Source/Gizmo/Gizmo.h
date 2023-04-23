@@ -24,6 +24,17 @@ enum class EGizmo : uint8
 };
 
 
+UENUM(BlueprintType)
+enum class EGizmoActiveStatus : uint8
+{
+	None,
+	Attached   UMETA(DisplayName = "Attached Actor"),
+	Change     UMETA(DisplayName = "Change Actor"),
+	Drop       UMETA(DisplayName = "Drop Actor"),
+	Delete     UMETA(DisplayName = "Delete Actor"),
+};
+
+
 
 
 USTRUCT(BlueprintType)

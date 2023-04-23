@@ -12,6 +12,8 @@ class USceneComponent;
 class UGizmoComponent;
 
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoDelegate, EGizmoActiveStatus, GizmoActiveStatus);
+
 
 UCLASS(config=Game)
 class AGizmoCharacter : public ACharacter
@@ -55,6 +57,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
 		class USceneComponent* GPivot;
 
+	UPROPERTY(BlueprintAssignable)
+	FGizmoDelegate GizmoDelegate;
+
+
 
 	/****** Enable GizmoActor movement *********/
 	bool CanUpdateGizmoActorTransform = false;
@@ -84,6 +90,9 @@ protected:
 
 	UPROPERTY(Replicated)
 	bool bCTRL;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Gizmo Tool")
+	EGizmoActiveStatus GizmoActvationStatus = EGizmoActiveStatus::None;
 
 public:
 
@@ -116,13 +125,16 @@ public:
 
 
 	// Call On Server side
-	void SetMainGizmoActor(AActor* GActor);
+	void SetMainGizmoActor(AActor* GActor, const EGizmoActiveStatus GActiveStatus = EGizmoActiveStatus::None);
 
 	// Call on Server
 	void SetOtherGizmoActors(AActor* OtherActor);
 
 	/******** Debug **********/
 	void PrintLocalRole();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Gizmo Tool")
+	void BP_GizmoTouch(bool bTouch);
 
 protected:
 
@@ -134,6 +146,7 @@ protected:
 
 	UFUNCTION(Client, Reliable)
 	void CL_SetOtherGizmoActors(AActor* OtherGizmoActor);
+
 
 public:
 

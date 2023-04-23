@@ -294,7 +294,8 @@ void AGizmoCharacter::SR_DropGizmoActor_Implementation()
 	OtherGizmoActors.Empty();
 
 	// Second Drop Main Gizmo Actor
-	SetMainGizmoActor(NULL);
+	SetMainGizmoActor(NULL, EGizmoActiveStatus::Drop);
+
 }
 
 void AGizmoCharacter::SR_DeleteGizmoActor_Implementation()
@@ -308,7 +309,10 @@ void AGizmoCharacter::SR_DeleteGizmoActor_Implementation()
 		OtherGActor->Destroy();
 	}
 
+	OtherGizmoActors.Empty();
 	GizmoActor->Destroy();
+
+	SetMainGizmoActor(NULL, EGizmoActiveStatus::Delete);
 }
 
 void AGizmoCharacter::SR_UpdateCTRL_Implementation(bool Status)
@@ -336,9 +340,11 @@ void AGizmoCharacter::CL_PressedGizmoTool_Implementation()
 	}
 }
 
-void AGizmoCharacter::SetMainGizmoActor(AActor* GActor)
+void AGizmoCharacter::SetMainGizmoActor(AActor* GActor, const EGizmoActiveStatus GActiveStatus)
 {
 	if(GizmoActor == GActor) return;
+
+	GizmoActvationStatus = GActiveStatus;
 	
 	if (GActor)
 	{
@@ -360,8 +366,11 @@ void AGizmoCharacter::SetMainGizmoActor(AActor* GActor)
 
 		IsGizmoActorValid = GizmoActor ? true : false;
 
-		// Server - Client
-		OnRep_GizmoActor(OldGizmoActor);
+		if (IsLocallyControlled())
+		{
+			// Server - Client
+			OnRep_GizmoActor(OldGizmoActor);
+		}
 	}
 	else
 	{
@@ -375,14 +384,18 @@ void AGizmoCharacter::SetMainGizmoActor(AActor* GActor)
 		AActor* OldGizmoActor = GizmoActor;
 		GizmoActor = NULL;
 
-		// Server - Client
-		OnRep_GizmoActor(OldGizmoActor);
+		if (IsLocallyControlled())
+		{
+			// Server - Client
+			OnRep_GizmoActor(OldGizmoActor);
+		}
 	}
 }
 
 
 void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 {
+	// Only Client
 	if (IsLocallyControlled())
 	{
 		bool bVisible = GizmoActor ? true : false;
@@ -399,6 +412,8 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 			GizmoComponent->MakeGizmoActorTranslucent(true, GizmoActor);
 
 		GizmoComponent->SetGizmoInputMode(bVisible /* ActiveGizmo Mode */);
+
+		GizmoDelegate.Broadcast(GizmoActvationStatus);
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
 	if (OldGizmoActor)
@@ -450,6 +465,7 @@ void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& Ou
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActor, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, bCTRL, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, OtherGizmoActors, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActvationStatus, COND_OwnerOnly);
 	//DOREPLIFETIME(AGizmoCharacter, GizmoActor);
 	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
 
