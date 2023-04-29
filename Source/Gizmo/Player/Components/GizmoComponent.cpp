@@ -408,6 +408,8 @@ void UGizmoComponent::PressedGizmoTool()
 		{
 			OwnerController->bShowMouseCursor = false;
 		}
+
+		bPressedGizmoTool = true;
 	}
 
 }
@@ -420,9 +422,10 @@ void UGizmoComponent::ReleasedGizmoTool()
 	GizmoMovementData.ClearData();
 	OwnerCharacter->BP_GizmoTouch(false);
 
-	if (OwnerController)
+	if (OwnerController && bPressedGizmoTool)
 	{
 		OwnerController->bShowMouseCursor = true;
+		bPressedGizmoTool = false;
 	}
 }
 

@@ -155,5 +155,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
 	bool bHideCursorDuringCapture = false;
+
+	bool bPressedGizmoTool = false;
 		
 };
