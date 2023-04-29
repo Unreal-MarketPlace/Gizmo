@@ -14,6 +14,14 @@ UGizmoComponent::UGizmoComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
+	TM_Snapping.Add(ESnapping::Off, MovePower);
+	TM_Snapping.Add(ESnapping::One, 0.417);
+	TM_Snapping.Add(ESnapping::Five, 2.085);
+	TM_Snapping.Add(ESnapping::Ten, 4.17);
+	TM_Snapping.Add(ESnapping::Twenty, 8.34);
+	TM_Snapping.Add(ESnapping::Fifty, 20.85);
+	TM_Snapping.Add(ESnapping::Auto, -1.f);
+
 }
 
 
@@ -395,6 +403,11 @@ void UGizmoComponent::PressedGizmoTool()
 	if (GizmoTouch != EGizmo::None)
 	{
 		OwnerCharacter->BP_GizmoTouch(true);
+
+		if (bHideCursorDuringCapture && OwnerController)
+		{
+			OwnerController->bShowMouseCursor = false;
+		}
 	}
 
 }
@@ -406,6 +419,11 @@ void UGizmoComponent::ReleasedGizmoTool()
 	GizmoTouch = EGizmo::None;
 	GizmoMovementData.ClearData();
 	OwnerCharacter->BP_GizmoTouch(false);
+
+	if (OwnerController)
+	{
+		OwnerController->bShowMouseCursor = true;
+	}
 }
 
 void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
@@ -606,9 +624,7 @@ void UGizmoComponent::CoursorTrace(FHitResult& Hit)
 
 float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel)
 {
-	// Sum Snapping each mouse Update
-	SnappingLocation += FMath::Abs(CurrentPixel - PassedPixel);
-	//PG_LOG(Error, TEXT("UGizmoComponent::UpdateMousePosition UpldateMousePixel = %f, MouseTouchPixel = %f U - M = %f SnappingLocation = %f"), UpldateMousePixel, MouseTouchPixel, (UpldateMousePixel - MouseTouchPixel), SnappingLocation);
+
 	float UMD = 0;
 
 	if (FMath::Abs(CurrentPixel - PassedPixel) > MouseSensitive)
@@ -632,6 +648,8 @@ float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel
 		//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdateMousePosition MouseUpdate // ====================================== \\"));
 	}
 
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdateMousePosition MouseSensitive = %f"), MouseSensitive)
+
 	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::UpdateMousePosition Curr = %f, Passed = %f"), CurrentPixel, PassedPixel);
 	//UE_LOG(LogTemp, Warning, TEXT("UGizmoComponent::UpdateMousePosition Abs Curr - Pass = %f"), FMath::Abs(CurrentPixel - PassedPixel));
 
@@ -643,7 +661,9 @@ float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel
 float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGizmoMovementData& GizmoMovement)
 {
 	float movestep = 0.f;
-	movestep = (MoveRate * GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * DeltaTime) * MovePower;
+	float snappingrate = GetSnappingRate(TouchAxis, SnappingMethod);
+	movestep = (MoveRate * GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * DeltaTime) * snappingrate;
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::GetMoveStep MoveStep = %f"), movestep);
 	return movestep;
 }
 
@@ -654,6 +674,18 @@ FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElem
 	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, *EnumString, true);
 	if (!EnumPtr) return FString("Invalid");
 	return EnumPtr->GetNameStringByIndex(EnemElement);
+}
+
+float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping)
+{
+	if (TM_Snapping.Contains(Snapping))
+	{
+		float SRate = TM_Snapping[Snapping];
+		if(SRate >= 0) return SRate;
+		else return UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
+	}
+
+	return MovePower;
 }
 
 /************* GizmoTool Dynamic Material ****************/

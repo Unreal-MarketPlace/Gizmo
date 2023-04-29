@@ -39,6 +39,12 @@ public:
 
 	void RemoveAllAttachedGizmoActor();
 
+	ESnapping GetSnappingMothod() { return SnappingMethod; }
+	void SetSnappingMethod(ESnapping NewMethod) { SnappingMethod = NewMethod; }
+
+	float GetMouseSensitive() { return MouseSensitive; }
+	void SetMouseSenstive(float NewSensitive) { MouseSensitive = NewSensitive; }
+
 protected:
 	
 	void RemoveAttachedGizmoActor(AActor* GActor);
@@ -76,6 +82,8 @@ private:
 
 	FString GetEnumString(const FString& EnumString, uint8 EnemElement);
 
+	float GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping);
+
 protected:
 
 	AGizmoCharacter* OwnerCharacter;
@@ -96,18 +104,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings ", meta = (ClampMin = 0.f, ClampMax = 1.f))
 	float GizmoActorTranslucent = 0.5;
 
-	/************ Per Pixel: 0 = High Sensitve***************/
-	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
-	float MouseSensitive = 5.f;
-
 
 private:
 
 	// set default not used in snapping mode
 	float MoveRate = 300.f;
-	// Is multiply each movement step in Tick. In Snapping: SnappingGrid * MovePower
-	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Movement", meta = (ClampMin = 1.f, ClampMax = 6.f))
-	float MovePower = 2;
+	// Is multiply each movement step in Tick. By default move step is 0.5 unit
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Movement", meta = (ClampMin = 0.1, ClampMax = 6.f))
+	float MovePower = 0.2085;
 	
 	/********* Gizmo Touch *********/
 	EGizmo GizmoTouch = EGizmo::None;
@@ -139,6 +143,17 @@ private:
 	UMaterialInstanceDynamic* MD_GizmoYaw;
 
 	/******* Gizmo Snapping **********/
-	float SnappingLocation;
+	UPROPERTY()
+	ESnapping SnappingMethod = ESnapping::Off;
+	UPROPERTY()
+	TMap<ESnapping, float> TM_Snapping;
+
+
+	/************ Per Pixel: 0 = High Sensitve***************/
+	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = 0, ClampMax = 100.f), Category = "Gizmo | Settings")
+	float MouseSensitive = 5.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
+	bool bHideCursorDuringCapture = false;
 		
 };

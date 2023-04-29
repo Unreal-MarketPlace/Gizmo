@@ -9,7 +9,18 @@
 
 #define OUT
 
+UENUM(BlueprintType)
+enum class ESnapping : uint8
+{
+	Off       UMETA(DisplayName = "Off"),
+	One       UMETA(DisplayName = "one unit"),
+	Five      UMETA(DisplayName = "Five unit"),
+	Ten       UMETA(DisplayName = "Ten unit"),
+	Twenty    UMETA(DisplayName = "Twenty unit"),
+	Fifty     UMETA(DisplayName = "Fifty unit"),
+	Auto      UMETA(DisplayName = "Auto")
 
+};
 
 UENUM(BlueprintType)
 enum class EGizmo : uint8

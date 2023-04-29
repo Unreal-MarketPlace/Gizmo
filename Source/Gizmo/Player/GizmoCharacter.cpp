@@ -11,7 +11,7 @@
 #include "Components/SceneComponent.h"
 #include "Net/UnrealNetwork.h"
 
-#include "Components/GizmoComponent.h"
+#include "Gizmo/Player/Components/GizmoComponent.h"
 
 
 
@@ -338,6 +338,28 @@ void AGizmoCharacter::CL_PressedGizmoTool_Implementation()
 	{
 		GizmoComponent->PressedGizmoTool();
 	}
+}
+
+ESnapping AGizmoCharacter::GetGizmoSnappingMethod()
+{
+	if (GizmoComponent) return GizmoComponent->GetSnappingMothod(); 
+	else return ESnapping::Off;
+}
+
+void AGizmoCharacter::SetGizmoSnappingMethod(ESnapping NewMethod)
+{
+	if (GizmoComponent) GizmoComponent->SetSnappingMethod(NewMethod);
+}
+
+float AGizmoCharacter::GetGizmoMouseSensitive()
+{
+	if (GizmoComponent) return GizmoComponent->GetMouseSensitive(); 
+	else return -1;
+}
+
+void AGizmoCharacter::SetGizmoMouseSensitive(float NewSensitive)
+{
+	if (GizmoComponent) GizmoComponent->SetMouseSenstive(NewSensitive);
 }
 
 void AGizmoCharacter::SetMainGizmoActor(AActor* GActor, const EGizmoActiveStatus GActiveStatus)

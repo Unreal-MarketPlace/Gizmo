@@ -2,7 +2,9 @@
 
 
 #include "Gizmo/Library/GizmoMathLibrary.h"
+#include "Gizmo/GizmoActor/GizmoActorBase.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void UGizmoMathLibrary::GetGizmoAxisDirection(EGizmo GizmoTouch, FVector Touchpoint, AGizmoCharacter* InstigatorCharacter, FGizmoMovementData& GizmoTouchData, bool bShowDebugData /* false */, bool bShowDebugLines /* false */)
 {
@@ -401,6 +403,46 @@ FQuat UGizmoMathLibrary::GetGizmoQuat(EGizmo Axis, float roll, float pitch, floa
 	return Delta;
 }
 
+
+float UGizmoMathLibrary::GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingActor, bool bDrawDebugBox)
+{
+	const float ONEUNIT = 0.417;
+	AGizmoActorBase* GizmoBase = Cast<AGizmoActorBase>(SnappingActor);
+	if(!GizmoBase) return ONEUNIT;
+
+	FVector Min;
+	FVector Max;
+
+	if(!GizmoBase->GetStaticMeshComponent()) return ONEUNIT;
+
+	GizmoBase->GetStaticMeshComponent()->GetLocalBounds(OUT Min, OUT Max);
+
+	if (bDrawDebugBox)
+	{
+		UKismetSystemLibrary::DrawDebugBox(SnappingActor, SnappingActor->GetActorLocation(), Max, FLinearColor::Black, SnappingActor->GetActorRotation(), 0.1, 12.f);
+	}
+
+	float SnappingRate;
+	switch (TouchAxis)
+	{
+	case EGizmo::X:
+		SnappingRate = ONEUNIT * Max.X * 2;
+		break;
+	case EGizmo::Y:
+		SnappingRate = ONEUNIT * Max.Y * 2;
+		break;
+	case EGizmo::Z:
+		SnappingRate = ONEUNIT * Max.Z * 2;
+		break;
+	case EGizmo::None:
+	default:
+		SnappingRate = ONEUNIT;
+		break;
+	}
+
+	return SnappingRate;
+
+}
 
 void UGizmoMathLibrary::DrawDotProductLines(AGizmoCharacter* InstigatorCharacter, FVector TouchPoint, FVector TouchArrowLocation, FVector ArrowUnitVector, FVector MMUnitVector)
 {

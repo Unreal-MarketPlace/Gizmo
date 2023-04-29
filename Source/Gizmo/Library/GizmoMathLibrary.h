@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static FQuat GetGizmoQuat(EGizmo Axis, float roll, float pitch, float yaw);
 
+	UFUNCTION(BlueprintCallable)
+	static float GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingActor, bool bDrawDebugBox);
+
 private:
 
 	static void DrawDotProductLines(AGizmoCharacter* InstigatorCharacter, FVector TouchPoint, FVector TouchArrowLocation, FVector ArrowUnitVector, FVector MMUnitVector);

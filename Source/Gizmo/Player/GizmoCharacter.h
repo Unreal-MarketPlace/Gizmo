@@ -120,6 +120,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
 	FORCEINLINE bool IsControlPressed() { return bCTRL; }
 
+	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
+	ESnapping GetGizmoSnappingMethod();
+
+	UFUNCTION(BlueprintCallable, Category = "Gizmo Tool")
+	void SetGizmoSnappingMethod(ESnapping NewMethod);
+
+	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
+	float GetGizmoMouseSensitive();
+
+	UFUNCTION(BlueprintCallable, Category = "Gizmo Tool")
+	void SetGizmoMouseSensitive(float NewSensitive);
+
 	UFUNCTION(Client, Reliable)
 	void CL_PressedGizmoTool();
 
