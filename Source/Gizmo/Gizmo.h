@@ -48,6 +48,14 @@ enum class EGizmoActiveStatus : uint8
 
 
 
+UENUM(BlueprintType)
+enum class EGizmoTransition : uint8
+{
+	Location,
+	Rotation,
+	Scale
+};
+
 
 USTRUCT(BlueprintType)
 struct FGizmo
@@ -58,12 +66,21 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	class UStaticMeshComponent* GizmoArrowX;
+		
+		UPROPERTY(BlueprintReadOnly)
+		class UStaticMeshComponent* GizmoArrowSX;
 
 	UPROPERTY(BlueprintReadOnly)
 	class UStaticMeshComponent* GizmoArrowY;
+		
+		UPROPERTY(BlueprintReadOnly)
+		class UStaticMeshComponent* GizmoArrowSY;
 
 	UPROPERTY(BlueprintReadOnly)
 	class UStaticMeshComponent* GizmoArrowZ;
+
+		UPROPERTY(BlueprintReadOnly)
+		class UStaticMeshComponent* GizmoArrowSZ;
 
 	UPROPERTY(BlueprintReadOnly)
 	class UStaticMeshComponent* GizmoPitch;
@@ -80,11 +97,14 @@ public:
 
 public:
 
-	void Initilize(UStaticMeshComponent* GX, UStaticMeshComponent* GY, UStaticMeshComponent* GZ, UStaticMeshComponent* GP, UStaticMeshComponent* GR, UStaticMeshComponent* GYa, USceneComponent* GPi)
+	void Initilize(UStaticMeshComponent* GX, UStaticMeshComponent* GSX, UStaticMeshComponent* GY, UStaticMeshComponent* GSY, UStaticMeshComponent* GZ, UStaticMeshComponent* GSZ, UStaticMeshComponent* GP, UStaticMeshComponent* GR, UStaticMeshComponent* GYa, USceneComponent* GPi)
 	{
 		GizmoArrowX = GX;
+			GizmoArrowSX = GSX;
 		GizmoArrowY = GY;
+			GizmoArrowSY = GSY;
 		GizmoArrowZ = GZ;
+			GizmoArrowSZ = GSZ;
 		GizmoPitch = GP;
 		GizmoRoll = GR;
 		GizmoYaw = GYa;
@@ -94,19 +114,52 @@ public:
 
 	void SetGizmoToolVisibility(bool bVisible)
 	{
-		GizmoArrowX->SetVisibility(bVisible);
-		GizmoArrowY->SetVisibility(bVisible);
-		GizmoArrowZ->SetVisibility(bVisible);
-		GizmoPitch->SetVisibility(bVisible);
-		GizmoRoll->SetVisibility(bVisible);
-		GizmoYaw->SetVisibility(bVisible);
-		GizmoPivot->SetVisibility(bVisible);
+
+		GizmoArrowX->SetVisibility(bVisible, false);
+			GizmoArrowSX->SetVisibility(bVisible, false);
+		GizmoArrowY->SetVisibility(bVisible, false);
+			GizmoArrowSY->SetVisibility(bVisible, false);
+		GizmoArrowZ->SetVisibility(bVisible, false);
+			GizmoArrowSZ->SetVisibility(bVisible, false);
+		GizmoPitch->SetVisibility(bVisible, false);
+		GizmoRoll->SetVisibility(bVisible, false);
+		GizmoYaw->SetVisibility(bVisible, false);
+
+		GizmoPivot->SetVisibility(bVisible, false);
 	}
 
+	void SetGizmoToolVisibilityByTransition(EGizmoTransition GTransition, bool bVisible)
+	{
+		SetGizmoToolVisibility(false);
+		GizmoPivot->SetVisibility(bVisible);
+		switch (GTransition)
+		{
+		case EGizmoTransition::Location:
+			GizmoArrowX->SetVisibility(bVisible);
+			GizmoArrowY->SetVisibility(bVisible);
+			GizmoArrowZ->SetVisibility(bVisible);
+			break;
+		case EGizmoTransition::Rotation:
+			GizmoPitch->SetVisibility(bVisible);
+			GizmoRoll->SetVisibility(bVisible);
+			GizmoYaw->SetVisibility(bVisible);
+			break;
+		case EGizmoTransition::Scale:
+			GizmoArrowX->SetVisibility(bVisible);
+			GizmoArrowSX->SetVisibility(bVisible);
+			GizmoArrowY->SetVisibility(bVisible);
+			GizmoArrowSY->SetVisibility(bVisible);
+			GizmoArrowZ->SetVisibility(bVisible);
+			GizmoArrowSZ->SetVisibility(bVisible);
+			break;
+		default:
+			break;
+		}
+	}
 
 	bool IsGizmoValid()
 	{
-		return (GizmoArrowX && GizmoArrowY && GizmoArrowZ && GizmoPitch && GizmoRoll && GizmoYaw && GizmoPivot) ? true : false;
+		return (GizmoArrowX && GizmoArrowSX && GizmoArrowY && GizmoArrowSY && GizmoArrowZ && GizmoArrowSZ && GizmoPitch && GizmoRoll && GizmoYaw && GizmoPivot) ? true : false;
 	}
 
 

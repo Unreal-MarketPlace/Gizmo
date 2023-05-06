@@ -37,7 +37,15 @@ void UGizmoComponent::BeginPlay()
 	OwnerCharacter = Cast<AGizmoCharacter>(GetOwner());
 	if (OwnerCharacter)
 	{
-		OwnerCharacter->GetGizmoTool().SetGizmoToolVisibility(OwnerCharacter->bDefaultVisibleGizmo);
+		if (OwnerCharacter->GetGizmoTool().IsGizmoValid())
+		{
+			OwnerCharacter->GetGizmoTool().SetGizmoToolVisibility(OwnerCharacter->bDefaultVisibleGizmo);
+			UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::BeginPlay GizmoTool is VALID"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::BeginPlay GizmoTool is INVALID"));
+		}
 		SetGizmoMaterial();
 		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
 	}
@@ -393,7 +401,7 @@ void UGizmoComponent::PressedGizmoTool()
 	}
 
 	GizmoTouch = OwnerCharacter->GetGizmoTool().GetGizmoTouch(Hit.GetComponent());
-	ActivateGizmo(GizmoTouch, true);
+	ActivateGizmo(GizmoTouch, GizmoTransition, true);
 
 	UGizmoMathLibrary::GetGizmoAxisDirection(GizmoTouch, Hit.ImpactPoint, OwnerCharacter, OUT GizmoMovementData, bDebugText, bGizmoTraceVisible);
 	GizmoMovementData.GizmoLocation = OwnerCharacter->GetGizmoActor()->GetActorLocation();
@@ -418,7 +426,7 @@ void UGizmoComponent::PressedGizmoTool()
 void UGizmoComponent::ReleasedGizmoTool()
 {
 	OwnerCharacter->CanUpdateGizmoActorTransform = false;
-	ActivateGizmo(GizmoTouch, false);
+	ActivateGizmo(GizmoTouch, GizmoTransition, false);
 	GizmoTouch = EGizmo::None;
 	GizmoMovementData.ClearData();
 	OwnerCharacter->BP_GizmoTouch(false);
@@ -531,7 +539,7 @@ void UGizmoComponent::DeleteGizmoActor()
 	SM_GizmoActor = NULL;
 	DM_GizmoActor.Empty();
 
-	ActivateGizmo(GizmoTouch, false);
+	ActivateGizmo(GizmoTouch, GizmoTransition, false);
 	GizmoTouch = EGizmo::None;
 	GizmoMovementData.ClearData();
 
@@ -707,8 +715,11 @@ float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping)
 void UGizmoComponent::SetGizmoMaterial()
 {
 	MD_GizmoX = OwnerCharacter->GArrowX->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowX->GetMaterial(0));
+		MD_GizmoSX = OwnerCharacter->GArrowSX->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowSX->GetMaterial(0));
 	MD_GizmoY = OwnerCharacter->GArrowY->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowY->GetMaterial(0));
+		MD_GizmoSY = OwnerCharacter->GArrowSY->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowSY->GetMaterial(0));
 	MD_GizmoZ = OwnerCharacter->GArrowZ->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowZ->GetMaterial(0));
+		MD_GizmoSZ = OwnerCharacter->GArrowSZ->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GArrowSZ->GetMaterial(0));
 	MD_GizmoPitch = OwnerCharacter->GPitch->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GPitch->GetMaterial(0));
 	MD_GizmoRoll = OwnerCharacter->GRoll->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GRoll->GetMaterial(0));
 	MD_GizmoYaw = OwnerCharacter->GYaw->CreateAndSetMaterialInstanceDynamicFromMaterial(0, OwnerCharacter->GYaw->GetMaterial(0));
@@ -717,7 +728,7 @@ void UGizmoComponent::SetGizmoMaterial()
 }
 
 
-void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, bool DoActive)
+void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, EGizmoTransition GTransition, bool DoActive)
 {
 
 	float fValue = DoActive ? 1.f : 0.f;
@@ -728,6 +739,9 @@ void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, bool DoActive)
 		if (MD_GizmoX)
 			MD_GizmoX->SetScalarParameterValue(FName("Flickering"), fValue);
 
+		if(GTransition == EGizmoTransition::Scale && MD_GizmoSX)
+			MD_GizmoSX->SetScalarParameterValue(FName("Flickering"), fValue);
+
 		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed W"));
 		
 		break;
@@ -736,6 +750,9 @@ void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, bool DoActive)
 		if (MD_GizmoY)
 			MD_GizmoY->SetScalarParameterValue(FName("Flickering"), fValue);
 
+		if (GTransition == EGizmoTransition::Scale && MD_GizmoSY)
+			MD_GizmoSY->SetScalarParameterValue(FName("Flickering"), fValue);
+
 		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Y"));
 
 		break;
@@ -743,6 +760,9 @@ void UGizmoComponent::ActivateGizmo(EGizmo ActiveTouch, bool DoActive)
 		
 		if (MD_GizmoZ)
 			MD_GizmoZ->SetScalarParameterValue(FName("Flickering"), fValue);
+
+		if (GTransition == EGizmoTransition::Scale && MD_GizmoSZ)
+			MD_GizmoSZ->SetScalarParameterValue(FName("Flickering"), fValue);
 
 		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ActivateGizmo Pressed Z"));
 		break;

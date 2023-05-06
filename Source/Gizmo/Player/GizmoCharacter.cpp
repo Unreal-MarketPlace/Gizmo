@@ -40,8 +40,14 @@ AGizmoCharacter::AGizmoCharacter()
 	GPivot->SetupAttachment(RootComponent);
 
 	GArrowX = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowX"));
+		GArrowSX = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowSX"));
+		GArrowSX->SetupAttachment(GArrowX, FName("Scale"));
 	GArrowY = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowY"));
+		GArrowSY = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowSY"));
+		GArrowSY->SetupAttachment(GArrowY, FName("Scale"));
 	GArrowZ = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowZ"));
+		GArrowSZ = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ArrowSZ"));
+		GArrowSZ->SetupAttachment(GArrowZ, FName("Scale"));
 	GArrowX->SetupAttachment(GPivot);
 	GArrowY->SetupAttachment(GPivot);
 	GArrowZ->SetupAttachment(GPivot);
@@ -84,6 +90,8 @@ AGizmoCharacter::AGizmoCharacter()
 
 	GetMovementComponent()->SetIsReplicated(true);
 
+	GizmoTool.Initilize(GArrowX, GArrowSX, GArrowY, GArrowSY, GArrowZ, GArrowSZ, GPitch, GRoll, GYaw, GPivot);
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
@@ -94,7 +102,7 @@ void AGizmoCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GizmoTool.Initilize(GArrowX, GArrowY, GArrowZ, GPitch, GRoll, GYaw, GPivot);
+	//GizmoTool.Initilize(GArrowX, GArrowSX, GArrowY, GArrowSY, GArrowZ, GArrowSZ, GPitch, GRoll, GYaw, GPivot);
 
 }
 
@@ -423,7 +431,8 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 		bool bVisible = GizmoActor ? true : false;
 		if (!bDefaultVisibleGizmo)
 		{
-			GizmoTool.SetGizmoToolVisibility(bVisible);
+			//GizmoTool.SetGizmoToolVisibility(bVisible);
+			GizmoTool.SetGizmoToolVisibilityByTransition(GizmoComponent->GetGizmoTransition(), bVisible);
 		}
 		GizmoComponent->AttachDetachGizmo(bVisible);
 		// 1

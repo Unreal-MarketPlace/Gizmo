@@ -45,6 +45,8 @@ public:
 	float GetMouseSensitive() { return MouseSensitive; }
 	void SetMouseSenstive(float NewSensitive) { MouseSensitive = NewSensitive; }
 
+	EGizmoTransition GetGizmoTransition() { return GizmoTransition; }
+
 protected:
 	
 	void RemoveAttachedGizmoActor(AActor* GActor);
@@ -56,7 +58,7 @@ protected:
 
 
 	void SetGizmoMaterial();
-	void ActivateGizmo(EGizmo ActiveTouch, bool DoActive);
+	void ActivateGizmo(EGizmo ActiveTouch, EGizmoTransition GTransition, bool DoActive);
 
 public:	
 	// Called every frame
@@ -114,7 +116,10 @@ private:
 	float MovePower = 0.2085;
 
 	float DefaultSnappingRate = 5.f;
-	
+
+	/******** Gizmo Transition *********/
+	EGizmoTransition GizmoTransition = EGizmoTransition::Location;
+
 	/********* Gizmo Touch *********/
 	EGizmo GizmoTouch = EGizmo::None;
 	FGizmoMovementData GizmoMovementData;
@@ -138,8 +143,11 @@ private:
 
 
 	UMaterialInstanceDynamic* MD_GizmoX;
+		UMaterialInstanceDynamic* MD_GizmoSX;
 	UMaterialInstanceDynamic* MD_GizmoY;
+		UMaterialInstanceDynamic* MD_GizmoSY;
 	UMaterialInstanceDynamic* MD_GizmoZ;
+		UMaterialInstanceDynamic* MD_GizmoSZ;
 	UMaterialInstanceDynamic* MD_GizmoPitch;
 	UMaterialInstanceDynamic* MD_GizmoRoll;
 	UMaterialInstanceDynamic* MD_GizmoYaw;

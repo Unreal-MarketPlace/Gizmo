@@ -37,25 +37,34 @@ public:
 	// Gizmo
 	// Gizmo Arrow
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GArrowX;
+	class UStaticMeshComponent* GArrowX;
+
+		UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
+		class UStaticMeshComponent* GArrowSX;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GArrowY;
+	class UStaticMeshComponent* GArrowY;
+		
+		UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
+		class UStaticMeshComponent* GArrowSY;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GArrowZ;
+	class UStaticMeshComponent* GArrowZ;
+
+		UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
+		class UStaticMeshComponent* GArrowSZ;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GPitch;
+	class UStaticMeshComponent* GPitch;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GRoll;
+	class UStaticMeshComponent* GRoll;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class UStaticMeshComponent* GYaw;
+	class UStaticMeshComponent* GYaw;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Gizmo Tool")
-		class USceneComponent* GPivot;
+	class USceneComponent* GPivot;
 
 	UPROPERTY(BlueprintAssignable)
 	FGizmoDelegate GizmoDelegate;
