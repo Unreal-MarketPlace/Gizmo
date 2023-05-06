@@ -406,14 +406,14 @@ FQuat UGizmoMathLibrary::GetGizmoQuat(EGizmo Axis, float roll, float pitch, floa
 
 float UGizmoMathLibrary::GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingActor, bool bDrawDebugBox)
 {
-	const float ONEUNIT = 0.417;
+
 	AGizmoActorBase* GizmoBase = Cast<AGizmoActorBase>(SnappingActor);
-	if(!GizmoBase) return ONEUNIT;
+	if(!GizmoBase) return -1;
 
 	FVector Min;
 	FVector Max;
 
-	if(!GizmoBase->GetStaticMeshComponent()) return ONEUNIT;
+	if(!GizmoBase->GetStaticMeshComponent()) return -1;
 
 	GizmoBase->GetStaticMeshComponent()->GetLocalBounds(OUT Min, OUT Max);
 
@@ -426,17 +426,17 @@ float UGizmoMathLibrary::GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingA
 	switch (TouchAxis)
 	{
 	case EGizmo::X:
-		SnappingRate = ONEUNIT * Max.X * 2;
+		SnappingRate = Max.X * 2;
 		break;
 	case EGizmo::Y:
-		SnappingRate = ONEUNIT * Max.Y * 2;
+		SnappingRate = Max.Y * 2;
 		break;
 	case EGizmo::Z:
-		SnappingRate = ONEUNIT * Max.Z * 2;
+		SnappingRate = Max.Z * 2;
 		break;
 	case EGizmo::None:
 	default:
-		SnappingRate = ONEUNIT;
+		SnappingRate = -1;
 		break;
 	}
 

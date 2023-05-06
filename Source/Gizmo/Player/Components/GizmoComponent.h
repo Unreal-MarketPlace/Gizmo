@@ -112,6 +112,8 @@ private:
 	// Is multiply each movement step in Tick. By default move step is 0.5 unit
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Movement", meta = (ClampMin = 0.1, ClampMax = 6.f))
 	float MovePower = 0.2085;
+
+	float DefaultSnappingRate = 5.f;
 	
 	/********* Gizmo Touch *********/
 	EGizmo GizmoTouch = EGizmo::None;

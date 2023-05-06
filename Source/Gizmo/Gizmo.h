@@ -13,11 +13,12 @@ UENUM(BlueprintType)
 enum class ESnapping : uint8
 {
 	Off       UMETA(DisplayName = "Off"),
-	One       UMETA(DisplayName = "one unit"),
-	Five      UMETA(DisplayName = "Five unit"),
-	Ten       UMETA(DisplayName = "Ten unit"),
-	Twenty    UMETA(DisplayName = "Twenty unit"),
-	Fifty     UMETA(DisplayName = "Fifty unit"),
+	Mini      UMETA(DisplayName = "Half Unit"),
+	One       UMETA(DisplayName = "One Unit"),
+	Ten       UMETA(DisplayName = "Ten Unit"),
+	Twenty    UMETA(DisplayName = "Twenty Unit"),
+	Fifty     UMETA(DisplayName = "Fifty Unit"),
+	Hundred   UMETA(DisplayName = "Hundred Unit"),
 	Auto      UMETA(DisplayName = "Auto")
 
 };

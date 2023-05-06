@@ -14,13 +14,14 @@ UGizmoComponent::UGizmoComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	TM_Snapping.Add(ESnapping::Off, MovePower);
-	TM_Snapping.Add(ESnapping::One, 0.417);
-	TM_Snapping.Add(ESnapping::Five, 2.085);
-	TM_Snapping.Add(ESnapping::Ten, 4.17);
-	TM_Snapping.Add(ESnapping::Twenty, 8.34);
-	TM_Snapping.Add(ESnapping::Fifty, 20.85);
-	TM_Snapping.Add(ESnapping::Auto, -1.f);
+	TM_Snapping.Add(ESnapping::Off,     DefaultSnappingRate);
+	TM_Snapping.Add(ESnapping::Mini,    0.5);
+	TM_Snapping.Add(ESnapping::One,     1.f);
+	TM_Snapping.Add(ESnapping::Ten,     10.f);
+	TM_Snapping.Add(ESnapping::Twenty,  20.f);
+	TM_Snapping.Add(ESnapping::Fifty,   50.f);
+	TM_Snapping.Add(ESnapping::Hundred, 100.f);
+	TM_Snapping.Add(ESnapping::Auto,    -1.f);
 
 }
 
@@ -665,7 +666,7 @@ float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGiz
 {
 	float movestep = 0.f;
 	float snappingrate = GetSnappingRate(TouchAxis, SnappingMethod);
-	movestep = (MoveRate * GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * DeltaTime) * snappingrate;
+	movestep = GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * snappingrate;
 	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::GetMoveStep MoveStep = %f"), movestep);
 	return movestep;
 }
@@ -681,14 +682,23 @@ FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElem
 
 float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping)
 {
+	float SRate = 0;
 	if (TM_Snapping.Contains(Snapping))
 	{
-		float SRate = TM_Snapping[Snapping];
-		if(SRate >= 0) return SRate;
-		else return UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
+		SRate = TM_Snapping[Snapping];
+		if (SRate >= 0)
+		{
+			return SRate;
+		}
+		else
+		{
+			float AutoRate = UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
+			SRate = AutoRate > 0 ? AutoRate : DefaultSnappingRate;
+			return SRate;
+		}
 	}
 
-	return MovePower;
+	return DefaultSnappingRate;
 }
 
 /************* GizmoTool Dynamic Material ****************/
