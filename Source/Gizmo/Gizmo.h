@@ -12,14 +12,23 @@
 UENUM(BlueprintType)
 enum class ESnapping : uint8
 {
-	Off       UMETA(DisplayName = "Off"),
-	Mini      UMETA(DisplayName = "Half Unit"),
-	One       UMETA(DisplayName = "One Unit"),
-	Ten       UMETA(DisplayName = "Ten Unit"),
-	Twenty    UMETA(DisplayName = "Twenty Unit"),
-	Fifty     UMETA(DisplayName = "Fifty Unit"),
-	Hundred   UMETA(DisplayName = "Hundred Unit"),
-	Auto      UMETA(DisplayName = "Auto")
+	//
+	Off         UMETA(DisplayName = "Off"),
+	Mini        UMETA(DisplayName = "Half Unit"),
+	One         UMETA(DisplayName = "One Unit"),
+	Ten         UMETA(DisplayName = "Ten Unit"),
+	Twenty      UMETA(DisplayName = "Twenty Unit"),
+	Fifty       UMETA(DisplayName = "Fifty Unit"),
+	Hundred     UMETA(DisplayName = "Hundred Unit"),
+	Auto        UMETA(DisplayName = "Auto"),
+
+	// Rotation
+	Fiveteen    UMETA(DisplayName = "Fiveteen Unit"),
+	FourtyFive  UMETA(DisplayName = "FourtyFive Unit"),
+
+	// Scale
+	Two         UMETA(DisplayName = "Two Unit"),
+	Three       UMETA(DisplayName = "Three Unit")
 
 };
 
@@ -53,7 +62,8 @@ enum class EGizmoTransition : uint8
 {
 	Location,
 	Rotation,
-	Scale
+	Scale,
+	None
 };
 
 
@@ -166,11 +176,11 @@ public:
 	EGizmo GetGizmoTouch(UPrimitiveComponent* TouchComponent)
 	{
 		EGizmo temp = EGizmo::None;
-		if (TouchComponent == GizmoArrowX)
+		if (TouchComponent == GizmoArrowX || TouchComponent == GizmoArrowSX)
 			temp = EGizmo::X;
-		else if (TouchComponent == GizmoArrowY)
+		else if (TouchComponent == GizmoArrowY || TouchComponent == GizmoArrowSY)
 			temp = EGizmo::Y;
-		else if (TouchComponent == GizmoArrowZ)
+		else if (TouchComponent == GizmoArrowZ || TouchComponent == GizmoArrowSZ)
 			temp = EGizmo::Z;
 		else if (TouchComponent == GizmoPitch)
 			temp = EGizmo::Pitch;
@@ -206,6 +216,8 @@ public:
 	FQuat GizmoQuat = FQuat::Identity;
 	UPROPERTY(BlueprintReadOnly)
 	FVector GizmoLocation = FVector::ZeroVector;
+	UPROPERTY(BlueprintReadOnly)
+	FVector GizmoScale = FVector::ZeroVector;
 	UPROPERTY(BlueprintReadOnly)
 	FTransform GizmoTransform = FTransform::Identity;
 	UPROPERTY(BlueprintReadOnly)

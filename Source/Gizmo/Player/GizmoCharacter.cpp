@@ -157,6 +157,12 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("Delete", IE_Pressed, this, &AGizmoCharacter::DeleteGizmoActor);
 	PlayerInputComponent->BindAction("DropGizmoActor", IE_Pressed, this, &AGizmoCharacter::DropGizmoActor);
 
+	PlayerInputComponent->BindAction("One", IE_Pressed, this, &AGizmoCharacter::SetGizmoLocationTransition);
+	PlayerInputComponent->BindAction("Two", IE_Pressed, this, &AGizmoCharacter::SetGizmoRotationTransition);
+	PlayerInputComponent->BindAction("Three", IE_Pressed, this, &AGizmoCharacter::SetGizmoScaleTransition);
+
+
+
 	// handle touch devices
 	PlayerInputComponent->BindTouch(IE_Pressed, this, &AGizmoCharacter::TouchStarted);
 	PlayerInputComponent->BindTouch(IE_Released, this, &AGizmoCharacter::TouchStopped);
@@ -295,6 +301,21 @@ void AGizmoCharacter::DropGizmoActor()
 }
 
 
+void AGizmoCharacter::SetGizmoLocationTransition()
+{
+	SetGizmoTransition(EGizmoTransition::Location);
+}
+
+void AGizmoCharacter::SetGizmoRotationTransition()
+{
+	SetGizmoTransition(EGizmoTransition::Rotation);
+}
+
+void AGizmoCharacter::SetGizmoScaleTransition()
+{
+	SetGizmoTransition(EGizmoTransition::Scale);
+}
+
 void AGizmoCharacter::SR_DropGizmoActor_Implementation()
 {
 	if(!GizmoActor) return;
@@ -359,6 +380,12 @@ void AGizmoCharacter::SetGizmoSnappingMethod(ESnapping NewMethod)
 	if (GizmoComponent) GizmoComponent->SetSnappingMethod(NewMethod);
 }
 
+void AGizmoCharacter::GetKeySnappingsByTransition(EGizmoTransition GTransition, TArray<ESnapping>& KeySnappings)
+{
+	if(GizmoComponent)
+		GizmoComponent->GetKeySnappingByTransition(GTransition, KeySnappings);
+}
+
 float AGizmoCharacter::GetGizmoMouseSensitive()
 {
 	if (GizmoComponent) return GizmoComponent->GetMouseSensitive(); 
@@ -368,6 +395,22 @@ float AGizmoCharacter::GetGizmoMouseSensitive()
 void AGizmoCharacter::SetGizmoMouseSensitive(float NewSensitive)
 {
 	if (GizmoComponent) GizmoComponent->SetMouseSenstive(NewSensitive);
+}
+
+EGizmoTransition AGizmoCharacter::GetGizmoTransition()
+{
+	if (GizmoComponent) return GizmoComponent->GetGizmoTransition();
+	else return EGizmoTransition::None;
+}
+
+void AGizmoCharacter::SetGizmoTransition(EGizmoTransition NewTransition)
+{
+	if (GizmoComponent)
+	{
+		if(GizmoComponent->GetGizmoTransition() == NewTransition) return;
+		GizmoComponent->SetGizmoTransition(NewTransition);
+		GizmoTransitionDelegate.Broadcast(NewTransition);
+	}
 }
 
 void AGizmoCharacter::SetMainGizmoActor(AActor* GActor, const EGizmoActiveStatus GActiveStatus)

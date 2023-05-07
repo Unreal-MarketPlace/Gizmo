@@ -13,15 +13,28 @@ UGizmoComponent::UGizmoComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+	
+	// Snapping Location
+	TM_SnappingLocation.Add(ESnapping::Off,     DefaultSnappingLocation);
+	TM_SnappingLocation.Add(ESnapping::Mini,    0.5);
+	TM_SnappingLocation.Add(ESnapping::One,     1.f);
+	TM_SnappingLocation.Add(ESnapping::Ten,     10.f);
+	TM_SnappingLocation.Add(ESnapping::Twenty,  20.f);
+	TM_SnappingLocation.Add(ESnapping::Fifty,   50.f);
+	TM_SnappingLocation.Add(ESnapping::Hundred, 100.f);
+	TM_SnappingLocation.Add(ESnapping::Auto,    -1.f);
 
-	TM_Snapping.Add(ESnapping::Off,     DefaultSnappingRate);
-	TM_Snapping.Add(ESnapping::Mini,    0.5);
-	TM_Snapping.Add(ESnapping::One,     1.f);
-	TM_Snapping.Add(ESnapping::Ten,     10.f);
-	TM_Snapping.Add(ESnapping::Twenty,  20.f);
-	TM_Snapping.Add(ESnapping::Fifty,   50.f);
-	TM_Snapping.Add(ESnapping::Hundred, 100.f);
-	TM_Snapping.Add(ESnapping::Auto,    -1.f);
+	// Snapping Rotation
+	TM_SnappingRotation.Add(ESnapping::Off,        DefaultSnappingRotatoin),
+	TM_SnappingRotation.Add(ESnapping::One,        1.f);
+	TM_SnappingRotation.Add(ESnapping::Fiveteen,   15.f);
+	TM_SnappingRotation.Add(ESnapping::FourtyFive, 45.f);
+
+	// Snapping Scale
+	TM_SnappingScale.Add(ESnapping::Off,     DefaultSnappingScale);
+	TM_SnappingScale.Add(ESnapping::Mini,    0.5);
+	TM_SnappingScale.Add(ESnapping::Two,     2.f);
+	TM_SnappingScale.Add(ESnapping::Three,   3.f);
 
 }
 
@@ -459,7 +472,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 			
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetForwardVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -473,7 +486,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetRightVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -487,7 +500,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		else
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetUpVector();
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
@@ -498,7 +511,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, moveStep, 0.f);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -509,7 +522,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, moveStep, 0.f, 0.f);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -520,7 +533,7 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 
 		GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.X, MouseTouchPoint.X);
 
-		moveStep = GetMoveStep(GizmoTouch, DeltaTime, GizmoMovementData);
+		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
 		GizmoMovementData.GizmoQuat *= UGizmoMathLibrary::GetGizmoQuat(GizmoTouch, 0.f, 0.f, moveStep);
 		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
 		GizmoMovementData.GizmoTransform.SetRotation(GizmoMovementData.GizmoQuat);
@@ -570,6 +583,16 @@ void UGizmoComponent::RemoveAllAttachedGizmoActor()
 	}
 }
 
+
+void UGizmoComponent::SetGizmoTransition(EGizmoTransition NewGizmoTransition)
+{
+	GizmoTransition = NewGizmoTransition;
+	if (OwnerCharacter->GetGizmoActor())
+	{
+		OwnerCharacter->GetGizmoTool().SetGizmoToolVisibilityByTransition(GizmoTransition, true);
+		SnappingMethod = ESnapping::Off;
+	}
+}
 
 void UGizmoComponent::RemoveAttachedGizmoActor(AActor* GActor)
 {
@@ -670,10 +693,10 @@ float UGizmoComponent::UpdateMousePosition(float CurrentPixel, float PassedPixel
 
 
 
-float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGizmoMovementData& GizmoMovement)
+float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, EGizmoTransition GTransitoin, float DeltaTime, const FGizmoMovementData& GizmoMovement)
 {
 	float movestep = 0.f;
-	float snappingrate = GetSnappingRate(TouchAxis, SnappingMethod);
+	float snappingrate = GetSnappingRate(TouchAxis, SnappingMethod, GTransitoin);
 	movestep = GizmoMovement.GizmoAxisDirection * GizmoMovement.MouseUpdateDirection * snappingrate;
 	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::GetMoveStep MoveStep = %f"), movestep);
 	return movestep;
@@ -688,25 +711,83 @@ FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElem
 	return EnumPtr->GetNameStringByIndex(EnemElement);
 }
 
-float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping)
+float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping, EGizmoTransition GTransition)
 {
-	float SRate = 0;
-	if (TM_Snapping.Contains(Snapping))
+	if (Snapping == ESnapping::Auto)
 	{
-		SRate = TM_Snapping[Snapping];
-		if (SRate >= 0)
+		float AutoRate = UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
+		float SRate = AutoRate > 0 ? AutoRate : GetDefaultSnappingByTransition(GTransition);
+		return SRate;
+	}
+	else
+	{
+		TMap<ESnapping, float>* TM_Snapping = GetSnappingCategoryByTransition(GTransition);
+		bool bContains = (*TM_Snapping).Contains(Snapping);
+		if (bContains)
 		{
+			float SRate = (*TM_Snapping)[Snapping];
 			return SRate;
 		}
 		else
 		{
-			float AutoRate = UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
-			SRate = AutoRate > 0 ? AutoRate : DefaultSnappingRate;
-			return SRate;
+			return GetDefaultSnappingByTransition(GizmoTransition);
 		}
 	}
 
-	return DefaultSnappingRate;
+}
+
+TMap<ESnapping, float>* UGizmoComponent::GetSnappingCategoryByTransition(EGizmoTransition GTransition)
+{
+	switch (GTransition)
+	{
+	case EGizmoTransition::Location:
+		return &TM_SnappingLocation;
+		break;
+	case EGizmoTransition::Rotation:
+		return &TM_SnappingRotation;
+		break;
+	case EGizmoTransition::Scale:
+		return &TM_SnappingScale;
+		break;
+	case EGizmoTransition::None:
+	default:
+		return NULL;
+		break;
+	}
+}
+
+float UGizmoComponent::GetDefaultSnappingByTransition(EGizmoTransition GTransition)
+{
+	switch (GTransition)
+	{
+	case EGizmoTransition::Location:
+		return DefaultSnappingLocation;
+	case EGizmoTransition::Rotation:
+		return DefaultSnappingRotatoin;
+	case EGizmoTransition::Scale:
+		return DefaultSnappingScale;
+	case EGizmoTransition::None:
+	default:
+		return 1.f;
+	}
+}
+
+
+void UGizmoComponent::GetKeySnappingByTransition(EGizmoTransition GTransition, TArray<ESnapping>& KeySnappings)
+{
+	switch (GTransition)
+	{
+	case EGizmoTransition::Location:
+		TM_SnappingLocation.GetKeys(KeySnappings);
+		break;
+	case EGizmoTransition::Rotation:
+		TM_SnappingRotation.GetKeys(KeySnappings);
+		break;
+	case EGizmoTransition::Scale:
+		TM_SnappingScale.GetKeys(KeySnappings);
+		break;
+
+	}
 }
 
 /************* GizmoTool Dynamic Material ****************/

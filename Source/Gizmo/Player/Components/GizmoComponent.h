@@ -41,11 +41,13 @@ public:
 
 	ESnapping GetSnappingMothod() { return SnappingMethod; }
 	void SetSnappingMethod(ESnapping NewMethod) { SnappingMethod = NewMethod; }
+	void GetKeySnappingByTransition(EGizmoTransition GTransition, TArray<ESnapping>& KeySnappings);
 
 	float GetMouseSensitive() { return MouseSensitive; }
 	void SetMouseSenstive(float NewSensitive) { MouseSensitive = NewSensitive; }
 
 	EGizmoTransition GetGizmoTransition() { return GizmoTransition; }
+	void SetGizmoTransition(EGizmoTransition NewGizmoTransition);
 
 protected:
 	
@@ -77,14 +79,17 @@ private:
 	/* Only for MainGizmo Actor */
 	UStaticMeshComponent* SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor);
 	/* */
-	float GetMoveStep(EGizmo TouchAxis, float DeltaTime, const FGizmoMovementData& GizmoMovement);
+	float GetMoveStep(EGizmo TouchAxis, EGizmoTransition GTransitoin, float DeltaTime, const FGizmoMovementData& GizmoMovement);
 
 	UFUNCTION(Server, Reliable)
 	void SR_UpdateGizmoActorTransform(const FTransform& NewTransform);
 
 	FString GetEnumString(const FString& EnumString, uint8 EnemElement);
 
-	float GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping);
+	float GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping, EGizmoTransition GTransition);
+
+	TMap<ESnapping, float>* GetSnappingCategoryByTransition(EGizmoTransition GTransition);
+	float GetDefaultSnappingByTransition(EGizmoTransition GTransition);
 
 protected:
 
@@ -109,13 +114,9 @@ protected:
 
 private:
 
-	// set default not used in snapping mode
-	float MoveRate = 300.f;
-	// Is multiply each movement step in Tick. By default move step is 0.5 unit
-	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Movement", meta = (ClampMin = 0.1, ClampMax = 6.f))
-	float MovePower = 0.2085;
-
-	float DefaultSnappingRate = 5.f;
+	float DefaultSnappingLocation = 5.f;
+	float DefaultSnappingRotatoin = 5.f;
+	float DefaultSnappingScale    = 1.f;
 
 	/******** Gizmo Transition *********/
 	EGizmoTransition GizmoTransition = EGizmoTransition::Location;
@@ -156,8 +157,11 @@ private:
 	UPROPERTY()
 	ESnapping SnappingMethod = ESnapping::Off;
 	UPROPERTY()
-	TMap<ESnapping, float> TM_Snapping;
-
+	TMap<ESnapping, float> TM_SnappingLocation;
+	UPROPERTY()
+	TMap<ESnapping, float> TM_SnappingRotation;
+	UPROPERTY()
+	TMap<ESnapping, float> TM_SnappingScale;
 
 	/************ Per Pixel: 0 = High Sensitve***************/
 	UPROPERTY(EditDefaultsOnly, meta = (ClampMin = 0, ClampMax = 100.f), Category = "Gizmo | Settings")

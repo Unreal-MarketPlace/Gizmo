@@ -13,6 +13,7 @@ class UGizmoComponent;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoDelegate, EGizmoActiveStatus, GizmoActiveStatus);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoTransitionDelegate, EGizmoTransition, GTransition);
 
 
 UCLASS(config=Game)
@@ -68,6 +69,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FGizmoDelegate GizmoDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FGizmoTransitionDelegate GizmoTransitionDelegate;
 
 
 
@@ -136,10 +140,19 @@ public:
 	void SetGizmoSnappingMethod(ESnapping NewMethod);
 
 	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
+	void GetKeySnappingsByTransition(EGizmoTransition GTransition, TArray<ESnapping>& KeySnappings);
+
+	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
 	float GetGizmoMouseSensitive();
 
 	UFUNCTION(BlueprintCallable, Category = "Gizmo Tool")
 	void SetGizmoMouseSensitive(float NewSensitive);
+
+	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
+	EGizmoTransition GetGizmoTransition();
+
+	UFUNCTION(BlueprintCallable, Category = "Gizmo Tool")
+	void SetGizmoTransition(EGizmoTransition NewTransition);
 
 	UFUNCTION(Client, Reliable)
 	void CL_PressedGizmoTool();
@@ -222,6 +235,10 @@ protected:
 	void DropGizmoActor();
 	UFUNCTION(Server, Reliable)
 	void SR_DropGizmoActor();
+
+	void SetGizmoLocationTransition();
+	void SetGizmoRotationTransition();
+	void SetGizmoScaleTransition();
 
 protected:
 	// APawn interface
