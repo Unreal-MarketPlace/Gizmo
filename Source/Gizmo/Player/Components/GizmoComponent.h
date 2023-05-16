@@ -72,7 +72,9 @@ private:
 
 	bool CanGizmoAttach(const FHitResult& Hit);
 
-	void CoursorTrace(FHitResult& Hit);
+	void SearchGizmoTool(FHitResult& Hit);
+
+	void CoursorTrace(FHitResult& Hit, FVector2D& TouchPixel, FVector& TouchPixelLocation, FVector& TouchPixelDirection);
 
 	float UpdateMousePosition(float CurrentPixel, float PassedPixel);
 

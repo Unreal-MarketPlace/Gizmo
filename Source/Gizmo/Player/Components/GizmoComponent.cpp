@@ -96,14 +96,35 @@ void UGizmoComponent::GizmoTrace()
 	if(!OwnerCharacter) return;
 
 	//Do a line trace to find something to pickup
-	FVector Start = OwnerCharacter->GetActorLocation();
-	Start += GizmoTraceOffset;
-	FVector End = Start + (OwnerCharacter->GetControlRotation().Quaternion().GetForwardVector() * GizmoTraceDistance);
-	FCollisionQueryParams Params = FCollisionQueryParams();
-	Params.AddIgnoredActor(OwnerCharacter);
-	FCollisionResponseParams RParams = FCollisionResponseParams();
+	FVector Start;
+	FVector End;
 	FHitResult Hit;
-	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, Params, RParams);
+
+	// GizmoActor = NULL input is GameOnly. need LineTrace
+	if (!OwnerCharacter->GetGizmoActor())
+	{
+		Start = OwnerCharacter->GetActorLocation();
+		Start += GizmoTraceOffset;
+		End = Start + (OwnerCharacter->GetControlRotation().Quaternion().GetForwardVector() * GizmoTraceDistance);
+		FCollisionQueryParams Params = FCollisionQueryParams();
+		Params.AddIgnoredActor(OwnerCharacter);
+		FCollisionResponseParams RParams = FCollisionResponseParams();
+
+		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, Params, RParams);
+	}
+	// GizmoActor = Valid input is GameAndUi. need CursorTrace
+	else
+	{
+		FVector2D ScreenPixel;
+		FVector ScreenTouchLocation;
+		FVector ScreenTouchDirection;
+
+		CoursorTrace(OUT Hit, OUT ScreenPixel, OUT ScreenTouchLocation, OUT ScreenTouchDirection);
+		
+		Start = ScreenTouchLocation;
+		End = ScreenTouchLocation + (ScreenTouchDirection * GizmoTraceDistance);
+	}
+
 
 	if (bGizmoTraceVisible)
 	{
@@ -410,7 +431,7 @@ void UGizmoComponent::SetGizmoInputMode(bool IsGizmoActive)
 void UGizmoComponent::PressedGizmoTool()
 {
 	FHitResult Hit;
-	CoursorTrace(Hit);
+	SearchGizmoTool(Hit);
 
 	if (Hit.GetComponent() && Hit.GetComponent()->GetAttachmentRootActor() && Hit.GetComponent()->GetAttachmentRootActor() == OwnerCharacter->GetGizmoActor())
 	{
@@ -440,6 +461,74 @@ void UGizmoComponent::PressedGizmoTool()
 	}
 
 }
+
+
+
+void UGizmoComponent::SearchGizmoTool(FHitResult& Hit)
+{
+	/*if (!OwnerCharacter) return;
+
+	bool bPressed;
+
+	if(!OwnerController)
+		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	bPressed = OwnerController->GetMousePosition(OUT MouseTouchPoint.X, OUT MouseTouchPoint.Y);
+	OwnerController->DeprojectScreenPositionToWorld(MouseTouchPoint.X, MouseTouchPoint.Y, OUT TouchLocation, OUT TouchDirection);
+
+	FVector Start = TouchLocation;
+	FVector End = TouchLocation + (TouchDirection * GizmoTraceDistance);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.bTraceComplex = true;
+	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);*/
+
+	CoursorTrace(OUT Hit, OUT MouseTouchPoint, OUT TouchLocation, OUT TouchDirection);
+
+	GizmoMovementData.UpdateMouseTouch = MouseTouchPoint;
+
+	FVector Start = TouchLocation;
+	FVector End   = TouchLocation + (TouchDirection * GizmoTraceDistance);
+
+	if (Hit.GetComponent())
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Touch Axis = %s"), *Hit.GetComponent()->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Not Found Gizmo"));
+	}
+
+	if (bGizmoTraceVisible)
+		DrawDebugLine(GetWorld(), Start, End, FColor(0, 255, 0), false, 10.f, 0.f, 5.f);
+}
+
+
+
+
+void UGizmoComponent::CoursorTrace(FHitResult& Hit, FVector2D& TouchPixel, FVector& TouchPixelLocation, FVector& TouchPixelDirection)
+{
+	if (!OwnerCharacter) return;
+
+	bool bPressed;
+
+	if (!OwnerController)
+		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	bPressed = OwnerController->GetMousePosition(OUT TouchPixel.X, OUT TouchPixel.Y);
+	OwnerController->DeprojectScreenPositionToWorld(TouchPixel.X, TouchPixel.Y, OUT TouchPixelLocation, OUT TouchPixelDirection);
+
+	FVector Start = TouchPixelLocation;
+	FVector End = TouchPixelLocation + (TouchPixelDirection * GizmoTraceDistance);
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.bTraceComplex = true;
+	//QueryParams.AddIgnoredActor(OwnerCharacter);
+	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);
+}
+
+
+
 
 void UGizmoComponent::ReleasedGizmoTool()
 {
@@ -678,44 +767,6 @@ void UGizmoComponent::SR_RemoveAttachedGizmoActor_Implementation(AActor* GActor)
 	GActor->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 	SetGizmoActorSettings(false, GActor);
 }
-
-
-
-
-void UGizmoComponent::CoursorTrace(FHitResult& Hit)
-{
-	if(!OwnerCharacter) return;
-
-	bool bPressed;
-
-	if(!OwnerController)
-		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
-
-	bPressed = OwnerController->GetMousePosition(OUT MouseTouchPoint.X, OUT MouseTouchPoint.Y);
-	OwnerController->DeprojectScreenPositionToWorld(MouseTouchPoint.X, MouseTouchPoint.Y, OUT TouchLocation, OUT TouchDirection);
-
-	FVector Start = TouchLocation;
-	FVector End = TouchLocation + (TouchDirection * GizmoTraceDistance);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.bTraceComplex = true;
-	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);
-
-	GizmoMovementData.UpdateMouseTouch = MouseTouchPoint;
-
-	if (Hit.GetComponent())
-	{
-		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Touch Axis = %s"), *Hit.GetComponent()->GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CoursorTrace Not Found Gizmo"));
-	}
-
-	if (bGizmoTraceVisible)
-		DrawDebugLine(GetWorld(), Start, End, FColor(0, 255, 0), false, 10.f, 0.f, 5.f);
-}
-
 
 
 
