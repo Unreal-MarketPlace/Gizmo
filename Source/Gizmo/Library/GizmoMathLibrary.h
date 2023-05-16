@@ -28,6 +28,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static float GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingActor, bool bDrawDebugBox);
 
+	static void CalculateMeshBounds(AActor* Object, FVector& Min, FVector& Max);
+
 private:
 
 	static void DrawDotProductLines(AGizmoCharacter* InstigatorCharacter, FVector TouchPoint, FVector TouchArrowLocation, FVector ArrowUnitVector, FVector MMUnitVector);

@@ -415,11 +415,13 @@ float UGizmoMathLibrary::GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingA
 
 	if(!GizmoBase->GetStaticMeshComponent()) return -1;
 
-	GizmoBase->GetStaticMeshComponent()->GetLocalBounds(OUT Min, OUT Max);
+	//GizmoBase->GetStaticMeshComponent()->GetLocalBounds(OUT Min, OUT Max);
+
+	CalculateMeshBounds(GizmoBase, OUT Min, OUT Max);
 
 	if (bDrawDebugBox)
 	{
-		UKismetSystemLibrary::DrawDebugBox(SnappingActor, SnappingActor->GetActorLocation(), Max, FLinearColor::Black, SnappingActor->GetActorRotation(), 0.1, 12.f);
+		UKismetSystemLibrary::DrawDebugBox(SnappingActor, Min, Max, FLinearColor::Black, SnappingActor->GetActorRotation(), 0.1, 12.f);
 	}
 
 	float SnappingRate;
@@ -442,6 +444,43 @@ float UGizmoMathLibrary::GetAutoSnappingRate(EGizmo TouchAxis, AActor* SnappingA
 
 	return SnappingRate;
 
+}
+
+void UGizmoMathLibrary::CalculateMeshBounds(AActor* Object, FVector& Min, FVector& Max)
+{
+	if(!Object) return;
+	
+	AGizmoActorBase* GActor = Cast<AGizmoActorBase>(Object);
+	UStaticMeshComponent* Mesh;
+	if (!GActor)
+	{
+		Mesh = Object->FindComponentByClass<UStaticMeshComponent>();
+		if(!Mesh) return;
+	}
+
+	Mesh = GActor->GetStaticMeshComponent();
+
+	if(!Mesh) return;
+
+	FVector LocalMin;
+	FVector LocalMax;
+
+	Mesh->GetLocalBounds(OUT LocalMin, OUT LocalMax);
+
+	FVector ObjectScale = Object->GetActorTransform().GetScale3D();
+
+	FVector StartMax = (LocalMax - LocalMin) * ObjectScale;
+	float X = UKismetMathLibrary::Round(StartMax.X);
+	float Y = UKismetMathLibrary::Round(StartMax.Y);
+	float Z = UKismetMathLibrary::Round(StartMax.Z);
+	FVector EndMax = FVector(X, Y, Z) / 2;
+
+	FVector StartMin = (LocalMax + LocalMin) * ObjectScale;
+	FVector EndMin = Object->GetActorLocation() + (StartMin / 2);
+
+
+	Max = EndMax;
+	Min = EndMin;
 }
 
 void UGizmoMathLibrary::DrawDotProductLines(AGizmoCharacter* InstigatorCharacter, FVector TouchPoint, FVector TouchArrowLocation, FVector ArrowUnitVector, FVector MMUnitVector)

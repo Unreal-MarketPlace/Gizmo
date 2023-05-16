@@ -12,23 +12,26 @@
 UENUM(BlueprintType)
 enum class ESnapping : uint8
 {
-	//
 	Off         UMETA(DisplayName = "Off"),
-	Mini        UMETA(DisplayName = "Half Unit"),
-	One         UMETA(DisplayName = "One Unit"),
-	Ten         UMETA(DisplayName = "Ten Unit"),
-	Twenty      UMETA(DisplayName = "Twenty Unit"),
-	Fifty       UMETA(DisplayName = "Fifty Unit"),
-	Hundred     UMETA(DisplayName = "Hundred Unit"),
-	Auto        UMETA(DisplayName = "Auto"),
+	L_Half      UMETA(DisplayName = "0.5 cm"),
+	L_One       UMETA(DisplayName = "1 cm"),
+	L_Ten       UMETA(DisplayName = "10 cm"),
+	L_Twenty    UMETA(DisplayName = "20 cm"),
+	L_Fifty     UMETA(DisplayName = "50 cm"),
+	L_Hundred   UMETA(DisplayName = "100 cm"),
+	L_Auto      UMETA(DisplayName = "Auto"),
 
 	// Rotation
-	Fiveteen    UMETA(DisplayName = "Fiveteen Unit"),
-	FourtyFive  UMETA(DisplayName = "FourtyFive Unit"),
+	R_One         UMETA(DisplayName = "1 degree"),
+	R_Ten         UMETA(DisplayName = "10 degree"),
+	R_Fiveteen    UMETA(DisplayName = "15 degree"),
+	R_FourtyFive  UMETA(DisplayName = "45 degree"),
 
 	// Scale
-	Two         UMETA(DisplayName = "Two Unit"),
-	Three       UMETA(DisplayName = "Three Unit")
+	S_PointOne      UMETA(DisplayName = "0.1 unit"),
+	S_PointThree    UMETA(DisplayName = "0.3 unit"),
+	S_PointFive     UMETA(DisplayName = "0.5 unit"),
+	S_One           UMETA(DisplayName = "1 unit")
 
 };
 
@@ -217,7 +220,7 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	FVector GizmoLocation = FVector::ZeroVector;
 	UPROPERTY(BlueprintReadOnly)
-	FVector GizmoScale = FVector::ZeroVector;
+	FVector GizmoScale = FVector(1.f);
 	UPROPERTY(BlueprintReadOnly)
 	FTransform GizmoTransform = FTransform::Identity;
 	UPROPERTY(BlueprintReadOnly)
@@ -235,6 +238,7 @@ public:
 		IsAxisForward = false;
 		GizmoQuat = FQuat::Identity;
 		GizmoLocation = FVector::ZeroVector;
+		GizmoScale = FVector(1.f);
 		GizmoTransform = FTransform::Identity;
 		UpdateMouseTouch = FVector2D::ZeroVector;
 

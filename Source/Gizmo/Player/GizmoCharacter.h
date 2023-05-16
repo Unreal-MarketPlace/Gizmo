@@ -122,13 +122,13 @@ public:
 
 	// Gizmo
 	UFUNCTION(BlueprintPure, Category = "Gizmo Tool")
-	FORCEINLINE FGizmo GetGizmoTool() { return GizmoTool; }
+	FGizmo GetGizmoTool() { return GizmoTool; }
 
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
-	FORCEINLINE AActor* GetGizmoActor() { return GizmoActor; }
+	AActor* GetGizmoActor() { return GizmoActor; }
 
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
-	FORCEINLINE TArray<AActor*> GetAttachedGizmoActors() { return OtherGizmoActors; }
+	TArray<AActor*> GetAttachedGizmoActors() { return OtherGizmoActors; }
 
 	UFUNCTION(BlueprintPure, Category = "Gizmo")
 	FORCEINLINE bool IsControlPressed() { return bCTRL; }
@@ -171,6 +171,9 @@ public:
 	void BP_GizmoTouch(bool bTouch);
 
 protected:
+
+	UFUNCTION(Server, Reliable)
+	void SR_SetGizmoTransition(EGizmoTransition NewTransition);
 
 	UFUNCTION(Server, Reliable)
 	void SR_GizmoTrace();

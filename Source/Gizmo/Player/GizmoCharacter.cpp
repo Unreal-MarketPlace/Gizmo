@@ -108,14 +108,6 @@ void AGizmoCharacter::BeginPlay()
 
 
 
-void AGizmoCharacter::CL_SetOtherGizmoActors_Implementation(AActor* OtherGizmoActor)
-{
-	if(!GizmoComponent || !OtherGizmoActor) return;
-
-	GizmoComponent->AttachDeatachActorToGizmoActor(OtherGizmoActor);
-	
-}
-
 void AGizmoCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -410,8 +402,16 @@ void AGizmoCharacter::SetGizmoTransition(EGizmoTransition NewTransition)
 		if(GizmoComponent->GetGizmoTransition() == NewTransition) return;
 		GizmoComponent->SetGizmoTransition(NewTransition);
 		GizmoTransitionDelegate.Broadcast(NewTransition);
+		SR_SetGizmoTransition(NewTransition);
 	}
 }
+
+
+void AGizmoCharacter::SR_SetGizmoTransition_Implementation(EGizmoTransition NewTransition)
+{
+	if (GizmoComponent) GizmoComponent->ServerSetGizmoTransition(NewTransition);
+}
+
 
 void AGizmoCharacter::SetMainGizmoActor(AActor* GActor, const EGizmoActiveStatus GActiveStatus)
 {
@@ -522,6 +522,16 @@ void AGizmoCharacter::SetOtherGizmoActors(AActor* OtherActor)
 		CL_SetOtherGizmoActors(OtherActor);
 }
 
+
+void AGizmoCharacter::CL_SetOtherGizmoActors_Implementation(AActor* OtherGizmoActor)
+{
+	if(!GizmoComponent || !OtherGizmoActor) return;
+
+	GizmoComponent->AttachDeatachActorToGizmoActor(OtherGizmoActor);
+	
+}
+
+
 void AGizmoCharacter::PrintLocalRole()
 {
 	if (GetLocalRole() == ROLE_Authority)
@@ -531,6 +541,8 @@ void AGizmoCharacter::PrintLocalRole()
 	if (GetLocalRole() == ROLE_SimulatedProxy)
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, FString::Printf(TEXT("Role SimulatedProxy")));
 }
+
+
 
 void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
 {

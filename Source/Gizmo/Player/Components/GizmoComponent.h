@@ -48,6 +48,8 @@ public:
 
 	EGizmoTransition GetGizmoTransition() { return GizmoTransition; }
 	void SetGizmoTransition(EGizmoTransition NewGizmoTransition);
+	// Call only Server side
+	void ServerSetGizmoTransition(EGizmoTransition NewGizmoTransition) { GizmoTransition = NewGizmoTransition; }
 
 protected:
 	
@@ -84,6 +86,9 @@ private:
 	UFUNCTION(Server, Reliable)
 	void SR_UpdateGizmoActorTransform(const FTransform& NewTransform);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void MC_UpdateGizmoActorTransform(const FTransform& NewTransform, ACharacter* InstigatorCharacter, AActor* TargetActor);
+
 	FString GetEnumString(const FString& EnumString, uint8 EnemElement);
 
 	float GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping, EGizmoTransition GTransition);
@@ -116,7 +121,7 @@ private:
 
 	float DefaultSnappingLocation = 5.f;
 	float DefaultSnappingRotatoin = 5.f;
-	float DefaultSnappingScale    = 1.f;
+	float DefaultSnappingScale    = 0.2;
 
 	/******** Gizmo Transition *********/
 	EGizmoTransition GizmoTransition = EGizmoTransition::Location;

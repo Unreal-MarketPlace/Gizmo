@@ -15,26 +15,28 @@ UGizmoComponent::UGizmoComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	// Snapping Location
-	TM_SnappingLocation.Add(ESnapping::Off,     DefaultSnappingLocation);
-	TM_SnappingLocation.Add(ESnapping::Mini,    0.5);
-	TM_SnappingLocation.Add(ESnapping::One,     1.f);
-	TM_SnappingLocation.Add(ESnapping::Ten,     10.f);
-	TM_SnappingLocation.Add(ESnapping::Twenty,  20.f);
-	TM_SnappingLocation.Add(ESnapping::Fifty,   50.f);
-	TM_SnappingLocation.Add(ESnapping::Hundred, 100.f);
-	TM_SnappingLocation.Add(ESnapping::Auto,    -1.f);
+	TM_SnappingLocation.Add(ESnapping::Off, DefaultSnappingLocation);
+	TM_SnappingLocation.Add(ESnapping::L_Half, 0.5);
+	TM_SnappingLocation.Add(ESnapping::L_One, 1.f);
+	TM_SnappingLocation.Add(ESnapping::L_Ten, 10.f);
+	TM_SnappingLocation.Add(ESnapping::L_Twenty, 20.f);
+	TM_SnappingLocation.Add(ESnapping::L_Fifty, 50.f);
+	TM_SnappingLocation.Add(ESnapping::L_Hundred, 100.f);
+	TM_SnappingLocation.Add(ESnapping::L_Auto, -1.f);
 
 	// Snapping Rotation
-	TM_SnappingRotation.Add(ESnapping::Off,        DefaultSnappingRotatoin),
-	TM_SnappingRotation.Add(ESnapping::One,        1.f);
-	TM_SnappingRotation.Add(ESnapping::Fiveteen,   15.f);
-	TM_SnappingRotation.Add(ESnapping::FourtyFive, 45.f);
+	TM_SnappingRotation.Add(ESnapping::Off, DefaultSnappingRotatoin);
+	TM_SnappingRotation.Add(ESnapping::R_One, 1.f);
+	TM_SnappingRotation.Add(ESnapping::R_Ten, 10.f);
+	TM_SnappingRotation.Add(ESnapping::R_Fiveteen, 15.f);
+	TM_SnappingRotation.Add(ESnapping::R_FourtyFive, 45.f);
 
 	// Snapping Scale
-	TM_SnappingScale.Add(ESnapping::Off,     DefaultSnappingScale);
-	TM_SnappingScale.Add(ESnapping::Mini,    0.5);
-	TM_SnappingScale.Add(ESnapping::Two,     2.f);
-	TM_SnappingScale.Add(ESnapping::Three,   3.f);
+	TM_SnappingScale.Add(ESnapping::Off, DefaultSnappingScale);
+	TM_SnappingScale.Add(ESnapping::S_One, 1.f);
+	TM_SnappingScale.Add(ESnapping::S_PointOne, 0.1);
+	TM_SnappingScale.Add(ESnapping::S_PointThree, 0.3);
+	TM_SnappingScale.Add(ESnapping::S_PointFive, 0.5);
 
 }
 
@@ -215,6 +217,7 @@ void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetGizmoActor()->GetTransform());
 
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->AttachToComponent(OwnerCharacter->GetGizmoActor()->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldScale3D(FVector(1.f));
 	}
 	else
 	{
@@ -222,6 +225,7 @@ void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldTransform(OwnerCharacter->GetTransform());
 
 		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->AttachToComponent(OwnerCharacter->GetRootComponent(), FAttachmentTransformRules::KeepWorldTransform);
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldScale3D(FVector(1.f));
 	}
 }
 
@@ -419,6 +423,7 @@ void UGizmoComponent::PressedGizmoTool()
 	UGizmoMathLibrary::GetGizmoAxisDirection(GizmoTouch, Hit.ImpactPoint, OwnerCharacter, OUT GizmoMovementData, bDebugText, bGizmoTraceVisible);
 	GizmoMovementData.GizmoLocation = OwnerCharacter->GetGizmoActor()->GetActorLocation();
 	GizmoMovementData.GizmoQuat = OwnerCharacter->GetGizmoActor()->GetActorTransform().GetRotation();
+	GizmoMovementData.GizmoScale = OwnerCharacter->GetGizmoActor()->GetActorTransform().GetScale3D();
 
 	OwnerCharacter->CanUpdateGizmoActorTransform = true;
 
@@ -473,9 +478,21 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 			
 		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
-		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetForwardVector();
-		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
-		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+
+		if (GizmoTransition == EGizmoTransition::Location)
+		{
+			GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetForwardVector();
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		}
+		else if (GizmoTransition == EGizmoTransition::Scale)
+		{
+			GizmoMovementData.GizmoScale.X += moveStep;
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetScale3D(GizmoMovementData.GizmoScale);
+		}
+
+		
 		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
 
 		break;
@@ -487,9 +504,21 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
 		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
-		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetRightVector();
-		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
-		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+
+		if (GizmoTransition == EGizmoTransition::Location)
+		{
+			GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetRightVector();
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		}
+		else if (GizmoTransition == EGizmoTransition::Scale)
+		{
+			GizmoMovementData.GizmoScale.Y += moveStep;
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetScale3D(GizmoMovementData.GizmoScale);
+		}
+
+
 		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
 
 		break;
@@ -501,9 +530,21 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 			GizmoMovementData.MouseUpdateDirection = UpdateMousePosition(GizmoMovementData.UpdateMouseTouch.Y, MouseTouchPoint.Y);
 
 		moveStep = GetMoveStep(GizmoTouch, GizmoTransition, DeltaTime, GizmoMovementData);
-		GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetUpVector();
-		GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
-		GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+
+		if (GizmoTransition == EGizmoTransition::Location)
+		{
+			GizmoMovementData.GizmoLocation += moveStep * OwnerCharacter->GetGizmoActor()->GetActorRotation().Quaternion().GetUpVector();
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetLocation(GizmoMovementData.GizmoLocation);
+		}
+		else if (GizmoTransition == EGizmoTransition::Scale)
+		{
+			GizmoMovementData.GizmoScale.Z += moveStep;
+			GizmoMovementData.GizmoTransform = OwnerCharacter->GetGizmoActor()->GetTransform();
+			GizmoMovementData.GizmoTransform.SetScale3D(GizmoMovementData.GizmoScale);
+		}
+
+
 		SR_UpdateGizmoActorTransform(GizmoMovementData.GizmoTransform);
 
 		break;
@@ -545,6 +586,30 @@ void UGizmoComponent::UpdatedGizmoActorTransform(float DeltaTime)
 		break;
 	}
 }
+
+
+void UGizmoComponent::SR_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform)
+{
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::SR_UpdateGizmoActorTransform Transform = %s"), *NewTransform.ToString());
+	OwnerCharacter->GetGizmoActor()->SetActorTransform(NewTransform);
+	OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldScale3D(FVector(1.f));
+	if (GizmoTransition == EGizmoTransition::Scale)
+	{
+		MC_UpdateGizmoActorTransform(NewTransform, OwnerCharacter, OwnerCharacter->GetGizmoActor());
+	}
+}
+
+void UGizmoComponent::MC_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform, ACharacter* InstigatorCharacter, AActor* TargetActor)
+{
+	TargetActor->SetActorTransform(NewTransform);
+	if (InstigatorCharacter == OwnerCharacter)
+	{
+		OwnerCharacter->GetGizmoTool().GetGizmoPivot()->SetWorldScale3D(FVector(1.f));
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::MC_UpdateGizmoActorTransform Transform = %s"), *NewTransform.ToString());
+		//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Purple, FString::Printf(TEXT("UGizmoComponent::MC_UpdateGizmoActorTransform Transform = %s"), *NewTransform.ToString()));
+	}
+}
+
 
 
 void UGizmoComponent::DeleteGizmoActor()
@@ -614,10 +679,7 @@ void UGizmoComponent::SR_RemoveAttachedGizmoActor_Implementation(AActor* GActor)
 	SetGizmoActorSettings(false, GActor);
 }
 
-void UGizmoComponent::SR_UpdateGizmoActorTransform_Implementation(const FTransform& NewTransform)
-{
-	OwnerCharacter->GetGizmoActor()->SetActorTransform(NewTransform);
-}
+
 
 
 void UGizmoComponent::CoursorTrace(FHitResult& Hit)
@@ -703,7 +765,6 @@ float UGizmoComponent::GetMoveStep(EGizmo TouchAxis, EGizmoTransition GTransitoi
 }
 
 
-
 FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElement)
 {
 	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, *EnumString, true);
@@ -713,7 +774,7 @@ FString UGizmoComponent::GetEnumString(const FString& EnumString, uint8 EnemElem
 
 float UGizmoComponent::GetSnappingRate(EGizmo TouchAxis, ESnapping Snapping, EGizmoTransition GTransition)
 {
-	if (Snapping == ESnapping::Auto)
+	if (Snapping == ESnapping::L_Auto)
 	{
 		float AutoRate = UGizmoMathLibrary::GetAutoSnappingRate(TouchAxis, OwnerCharacter->GetGizmoActor(), true);
 		float SRate = AutoRate > 0 ? AutoRate : GetDefaultSnappingByTransition(GTransition);
