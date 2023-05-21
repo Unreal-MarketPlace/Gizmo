@@ -242,7 +242,12 @@ void AGizmoCharacter::MoveUp(float Value)
 
 void AGizmoCharacter::LeftMousePressed()
 {
-	SR_GizmoTrace();
+	if (GizmoComponent)
+	{
+		GizmoComponent->GizmoTrace();
+	}
+	//UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
+	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
 }
 
 void AGizmoCharacter::LeftMouseReleased()
@@ -347,15 +352,6 @@ void AGizmoCharacter::SR_UpdateCTRL_Implementation(bool Status)
 	bCTRL = Status;
 }
 
-void AGizmoCharacter::SR_GizmoTrace_Implementation()
-{
-	if (GizmoComponent)
-	{
-		GizmoComponent->GizmoTrace();
-	}
-	//UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
-	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
-}
 
 
 

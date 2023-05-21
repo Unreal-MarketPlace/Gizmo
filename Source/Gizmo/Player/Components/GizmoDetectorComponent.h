@@ -10,6 +10,8 @@
 class AGizmoCharacter;
 class UGizmoComponent;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoOverlapDelegate, bool, IsOverlap);
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GIZMO_API UGizmoDetectorComponent : public UActorComponent
 {
@@ -20,6 +22,11 @@ public:
 	UGizmoDetectorComponent();
 
 	void Init(UGizmoComponent* GComponent);
+
+public:
+
+	UPROPERTY(BlueprintAssignable)
+	FGizmoOverlapDelegate GizmoOverlapDelegate;
 
 protected:
 	// Called when the game starts
@@ -40,6 +47,7 @@ private:
 	void OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition GTransition, bool DoActive);
 
 	void LightOffGizmo();
+
 
 protected:
 

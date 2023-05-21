@@ -16,6 +16,10 @@ UGizmoComponent::UGizmoComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	GizmoDetector = CreateDefaultSubobject<UGizmoDetectorComponent>(TEXT("GizmoDetector"));
+	if (!IsRunningDedicatedServer())
+	{
+		GizmoDetector->GizmoOverlapDelegate.AddDynamic(this, &UGizmoComponent::CursorOverlapGizmoTool);
+	}
 	
 	// Snapping Location
 	TM_SnappingLocation.Add(ESnapping::Off, DefaultSnappingLocation);
@@ -87,6 +91,9 @@ void UGizmoComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 
 bool UGizmoComponent::CanGizmoAttach(const FHitResult& Hit)
 {
+	// if Client Cursor Overlap GizmoTool
+	if(!CanAttach) return false;
+	// if Hit Actor NULL
 	if(!Hit.GetActor()) return false;
 	
 	AActor* GActorOwner = Hit.GetActor()->GetOwner();
@@ -106,7 +113,6 @@ void UGizmoComponent::GizmoTrace()
 	//Do a line trace to find something to pickup
 	FVector Start;
 	FVector End;
-	FHitResult Hit;
 
 	// GizmoActor = NULL input is GameOnly. need LineTrace
 	if (!OwnerCharacter->GetGizmoActor())
@@ -114,11 +120,7 @@ void UGizmoComponent::GizmoTrace()
 		Start = OwnerCharacter->GetActorLocation();
 		Start += GizmoTraceOffset;
 		End = Start + (OwnerCharacter->GetControlRotation().Quaternion().GetForwardVector() * GizmoTraceDistance);
-		FCollisionQueryParams Params = FCollisionQueryParams();
-		Params.AddIgnoredActor(OwnerCharacter);
-		FCollisionResponseParams RParams = FCollisionResponseParams();
-
-		GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, Params, RParams);
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::GizmoTrace Line Trace"));
 	}
 	// GizmoActor = Valid input is GameAndUi. need CursorTrace
 	else
@@ -127,11 +129,28 @@ void UGizmoComponent::GizmoTrace()
 		FVector ScreenTouchLocation;
 		FVector ScreenTouchDirection;
 
-		CoursorTrace(OUT Hit, OUT ScreenPixel, OUT ScreenTouchLocation, OUT ScreenTouchDirection);
-		
+		CoursorTrace(OUT ScreenPixel, OUT ScreenTouchLocation, OUT ScreenTouchDirection);
+		UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::GizmoTrace Coursor Trace"));
 		Start = ScreenTouchLocation;
 		End = ScreenTouchLocation + (ScreenTouchDirection * GizmoTraceDistance);
 	}
+
+	SR_GizmoTrace(Start, End);
+
+}
+
+void UGizmoComponent::SR_GizmoTrace_Implementation(const FVector& Start, const FVector& End)
+{
+	if (!OwnerCharacter) return;
+
+	//Do a line trace to find something to pickup
+	FHitResult Hit;
+
+	FCollisionQueryParams Params = FCollisionQueryParams();
+	Params.AddIgnoredActor(OwnerCharacter);
+	FCollisionResponseParams RParams = FCollisionResponseParams();
+	
+	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, Params, RParams);
 
 
 	if (bGizmoTraceVisible)
@@ -174,7 +193,7 @@ void UGizmoComponent::GizmoTrace()
 			EGizmoActiveStatus GActive = OwnerCharacter->GetGizmoActor() ? EGizmoActiveStatus::Change : EGizmoActiveStatus::Attached;
 			OwnerCharacter->SetMainGizmoActor(Hit.GetActor(), GActive);
 		}
-		
+
 	}
 	else
 	{
@@ -192,8 +211,8 @@ void UGizmoComponent::GizmoTrace()
 
 		//OwnerCharacter->SetGizmoActor(NULL);
 	}
-
 }
+
 
 void UGizmoComponent::SetGizmoActorSettings(bool On_Off, AActor* GActor /* NULL */)
 {
@@ -262,26 +281,6 @@ void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 
 void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor)
 {
-
-	/*if (OnOff && GActor)
-	{
-		SM_GizmoActor = GActor->FindComponentByClass<UStaticMeshComponent>();
-		if (SM_GizmoActor)
-		{
-
-			SM_GizmoActor->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-			SM_GizmoActor->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
-		}
-	}
-	else
-	{
-		if (SM_GizmoActor)
-		{
-			SM_GizmoActor->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-			SM_GizmoActor->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
-			SM_GizmoActor = NULL;
-		}
-	}*/
 
 	SM_GizmoActor = SetGizmoActorCollisionResponse(OnOff, GActor);
 
@@ -442,11 +441,6 @@ void UGizmoComponent::PressedGizmoTool()
 	FHitResult Hit;
 	SearchGizmoTool(Hit);
 
-	if (Hit.GetComponent() && Hit.GetComponent()->GetAttachmentRootActor() && Hit.GetComponent()->GetAttachmentRootActor() == OwnerCharacter->GetGizmoActor())
-	{
-
-	}
-
 	GizmoTouch = OwnerCharacter->GetGizmoTool().GetGizmoTouch(Hit.GetComponent());
 	ActivateGizmo(GizmoTouch, GizmoTransition, true);
 
@@ -475,22 +469,6 @@ void UGizmoComponent::PressedGizmoTool()
 
 void UGizmoComponent::SearchGizmoTool(FHitResult& Hit)
 {
-	/*if (!OwnerCharacter) return;
-
-	bool bPressed;
-
-	if(!OwnerController)
-		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
-
-	bPressed = OwnerController->GetMousePosition(OUT MouseTouchPoint.X, OUT MouseTouchPoint.Y);
-	OwnerController->DeprojectScreenPositionToWorld(MouseTouchPoint.X, MouseTouchPoint.Y, OUT TouchLocation, OUT TouchDirection);
-
-	FVector Start = TouchLocation;
-	FVector End = TouchLocation + (TouchDirection * GizmoTraceDistance);
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.bTraceComplex = true;
-	GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECollisionChannel::ECC_GameTraceChannel1, QueryParams);*/
 
 	CoursorTrace(OUT Hit, OUT MouseTouchPoint, OUT TouchLocation, OUT TouchDirection);
 
@@ -545,6 +523,12 @@ void UGizmoComponent::CoursorTrace(FHitResult& Hit)
 	FVector TPL;
 	FVector TPD;
 	CoursorTrace(Hit, TP, TPL, TPD);
+}
+
+void UGizmoComponent::CoursorTrace(FVector2D& TouchPixel, FVector& TouchPixelLocation, FVector& TouchPixelDirection)
+{
+	FHitResult RHit;
+	CoursorTrace(RHit, OUT TouchPixel, TouchPixelLocation, TouchPixelDirection);
 }
 
 void UGizmoComponent::ReleasedGizmoTool()
@@ -765,6 +749,7 @@ void UGizmoComponent::SetGizmoTransition(EGizmoTransition NewGizmoTransition)
 	}
 }
 
+
 void UGizmoComponent::RemoveAttachedGizmoActor(AActor* GActor)
 {
 	if (!GActor) return;
@@ -901,6 +886,19 @@ float UGizmoComponent::GetDefaultSnappingByTransition(EGizmoTransition GTransiti
 	}
 }
 
+
+void UGizmoComponent::CursorOverlapGizmoTool(bool bOverlap)
+{
+	CanAttach = !bOverlap;
+	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CursorOverlapGizmoTool CanTrace = %i"), CanAttach);
+	SR_CursorOverlapGizmoTool(bOverlap);
+}
+
+void UGizmoComponent::SR_CursorOverlapGizmoTool_Implementation(bool bOverlap)
+{
+	CanAttach = !bOverlap;
+	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::CursorOverlapGizmoTool CanTrace = %i"), CanAttach);
+}
 
 void UGizmoComponent::GetKeySnappingByTransition(EGizmoTransition GTransition, TArray<ESnapping>& KeySnappings)
 {

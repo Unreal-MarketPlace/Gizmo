@@ -57,6 +57,9 @@ public:
 	void CoursorTrace(FHitResult& Hit);
 
 protected:
+
+	UFUNCTION(Server, Reliable)
+	void SR_GizmoTrace(const FVector& Start, const FVector& End);
 	
 	void RemoveAttachedGizmoActor(AActor* GActor);
 	UFUNCTION(Server, Reliable)
@@ -80,6 +83,7 @@ private:
 	void SearchGizmoTool(FHitResult& Hit);
 
 	void CoursorTrace(FHitResult& Hit, FVector2D& TouchPixel, FVector& TouchPixelLocation, FVector& TouchPixelDirection);
+	void CoursorTrace(FVector2D& TouchPixel, FVector& TouchPixelLocation, FVector& TouchPixelDirection);
 
 	float UpdateMousePosition(float CurrentPixel, float PassedPixel);
 
@@ -102,6 +106,12 @@ private:
 
 	TMap<ESnapping, float>* GetSnappingCategoryByTransition(EGizmoTransition GTransition);
 	float GetDefaultSnappingByTransition(EGizmoTransition GTransition);
+
+	UFUNCTION()
+	void CursorOverlapGizmoTool(bool bOverlap);
+
+	UFUNCTION(Server, Reliable)
+	void SR_CursorOverlapGizmoTool(bool bOverlap);
 
 public:
 
@@ -187,5 +197,7 @@ private:
 	bool bHideCursorDuringCapture = false;
 
 	bool bPressedGizmoTool = false;
+
+	bool CanAttach = true;
 		
 };

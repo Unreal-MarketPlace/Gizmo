@@ -85,6 +85,8 @@ void UGizmoDetectorComponent::StartTrace()
 		GizmoCharacter->BP_GizmoOverlap(Overlap, GizmoOverlap);
 
 		SavedGizmoOverlap = GizmoOverlap;
+
+		GizmoOverlapDelegate.Broadcast(Overlap);
 	}
 
 }

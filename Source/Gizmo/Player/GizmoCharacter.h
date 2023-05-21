@@ -183,9 +183,6 @@ protected:
 	void SR_SetGizmoTransition(EGizmoTransition NewTransition);
 
 	UFUNCTION(Server, Reliable)
-	void SR_GizmoTrace();
-
-	UFUNCTION(Server, Reliable)
 	void SR_UpdateCTRL(bool Status);
 
 	UFUNCTION(Client, Reliable)
