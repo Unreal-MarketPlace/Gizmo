@@ -14,6 +14,7 @@ class UGizmoComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoDelegate, EGizmoActiveStatus, GizmoActiveStatus);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoTransitionDelegate, EGizmoTransition, GTransition);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAnyDelegate);
 
 
 UCLASS(config=Game)
@@ -72,6 +73,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FGizmoTransitionDelegate GizmoTransitionDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FAnyDelegate ToolTipDelegate;
 
 
 
@@ -245,6 +249,8 @@ protected:
 	void SetGizmoLocationTransition();
 	void SetGizmoRotationTransition();
 	void SetGizmoScaleTransition();
+
+	void ToolTip();
 
 protected:
 	// APawn interface

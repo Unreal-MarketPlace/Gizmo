@@ -152,6 +152,7 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("One", IE_Pressed, this, &AGizmoCharacter::SetGizmoLocationTransition);
 	PlayerInputComponent->BindAction("Two", IE_Pressed, this, &AGizmoCharacter::SetGizmoRotationTransition);
 	PlayerInputComponent->BindAction("Three", IE_Pressed, this, &AGizmoCharacter::SetGizmoScaleTransition);
+	PlayerInputComponent->BindAction("Tooltip", IE_Pressed, this, &AGizmoCharacter::ToolTip);
 
 
 
@@ -308,6 +309,11 @@ void AGizmoCharacter::SetGizmoScaleTransition()
 	SetGizmoTransition(EGizmoTransition::Scale);
 }
 
+void AGizmoCharacter::ToolTip()
+{
+	ToolTipDelegate.Broadcast();
+}
+
 void AGizmoCharacter::SR_DropGizmoActor_Implementation()
 {
 	if(!GizmoActor) return;
@@ -347,8 +353,8 @@ void AGizmoCharacter::SR_GizmoTrace_Implementation()
 	{
 		GizmoComponent->GizmoTrace();
 	}
-	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
-	GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
+	//UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_GizmoTrace"));
+	//GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("AGizmoCharacter::SR_GizmoTrace")));
 }
 
 
@@ -489,12 +495,15 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 
 		GizmoDelegate.Broadcast(GizmoActvationStatus);
 	}
+
+	/*
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("AGizmoCharacter::OnRep_GizmoActor")));
 	if (OldGizmoActor)
 		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep OldGName = %s"), *OldGizmoActor->GetName());
 	if (GizmoActor)
 		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::OnRep NewGName = %s"), *GizmoActor->GetName());
 	PrintLocalRole();
+	*/
 }
 
 

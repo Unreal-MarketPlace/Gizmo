@@ -116,7 +116,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoX;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap X"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap X"));
 
 		break;
 	case EGizmo::Y:
@@ -129,7 +129,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoY;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Y"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Y"));
 
 		break;
 	case EGizmo::Z:
@@ -142,7 +142,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoZ;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Z"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Z"));
 		break;
 	case EGizmo::Pitch:
 
@@ -151,7 +151,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoPitch;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Pitch"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Pitch"));
 		break;
 	case EGizmo::Roll:
 
@@ -160,7 +160,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoRoll;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Roll"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Roll"));
 		break;
 	case EGizmo::Yaw:
 
@@ -169,7 +169,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 
 		DM_Active = OwnerComponent->MD_GizmoYaw;
 
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Yaw"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap Yaw"));
 		break;
 	case EGizmo::None:
 
@@ -184,7 +184,7 @@ void UGizmoDetectorComponent::OverlapGizmo(EGizmo ActiveTouch, EGizmoTransition 
 				OwnerComponent->MD_GizmoSZ->SetScalarParameterValue(FName("Overlap"), fValue);
 			}
 		}
-		UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap None"));
+		//UE_LOG(LogTemp, Error, TEXT("UGizmoDetectorComponent::OverlapGizmo Overlap None"));
 		break;
 	}
 }
