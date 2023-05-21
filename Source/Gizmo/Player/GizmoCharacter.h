@@ -168,7 +168,10 @@ public:
 	void PrintLocalRole();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Gizmo Tool")
-	void BP_GizmoTouch(bool bTouch);
+	void BP_GizmoTouch(bool bTouch, EGizmo TouchedAxis);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Gizmo Tool")
+	void BP_GizmoOverlap(bool bTouch, EGizmo TouchedAxis);
 
 protected:
 

@@ -3,6 +3,7 @@
 
 #include "Gizmo/Player/Components/GizmoComponent.h"
 #include "Gizmo/Library/GizmoMathLibrary.h"
+#include "Gizmo/Player/Components/GizmoDetectorComponent.h"
 
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -13,6 +14,8 @@ UGizmoComponent::UGizmoComponent()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
+
+	GizmoDetector = CreateDefaultSubobject<UGizmoDetectorComponent>(TEXT("GizmoDetector"));
 	
 	// Snapping Location
 	TM_SnappingLocation.Add(ESnapping::Off, DefaultSnappingLocation);
@@ -63,6 +66,11 @@ void UGizmoComponent::BeginPlay()
 		}
 		SetGizmoMaterial();
 		OwnerController = Cast<APlayerController>(OwnerCharacter->GetController());
+	}
+
+	if (!IsRunningDedicatedServer())
+	{
+		GizmoDetector->Init(this);
 	}
 	
 }
@@ -450,7 +458,7 @@ void UGizmoComponent::PressedGizmoTool()
 
 	if (GizmoTouch != EGizmo::None)
 	{
-		OwnerCharacter->BP_GizmoTouch(true);
+		OwnerCharacter->BP_GizmoTouch(true, GizmoTouch);
 
 		if (bHideCursorDuringCapture && OwnerController)
 		{
@@ -530,13 +538,21 @@ void UGizmoComponent::CoursorTrace(FHitResult& Hit, FVector2D& TouchPixel, FVect
 
 
 
+void UGizmoComponent::CoursorTrace(FHitResult& Hit)
+{
+	FVector2D TP;
+	FVector TPL;
+	FVector TPD;
+	CoursorTrace(Hit, TP, TPL, TPD);
+}
+
 void UGizmoComponent::ReleasedGizmoTool()
 {
 	OwnerCharacter->CanUpdateGizmoActorTransform = false;
 	ActivateGizmo(GizmoTouch, GizmoTransition, false);
+	OwnerCharacter->BP_GizmoTouch(false, GizmoTouch);
 	GizmoTouch = EGizmo::None;
 	GizmoMovementData.ClearData();
-	OwnerCharacter->BP_GizmoTouch(false);
 
 	if (OwnerController && bPressedGizmoTool)
 	{

@@ -8,6 +8,9 @@
 #include "GizmoComponent.generated.h"
 
 
+class UGizmoDetectorComponent;
+
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GIZMO_API UGizmoComponent : public UActorComponent
@@ -50,6 +53,8 @@ public:
 	void SetGizmoTransition(EGizmoTransition NewGizmoTransition);
 	// Call only Server side
 	void ServerSetGizmoTransition(EGizmoTransition NewGizmoTransition) { GizmoTransition = NewGizmoTransition; }
+
+	void CoursorTrace(FHitResult& Hit);
 
 protected:
 	
@@ -98,10 +103,25 @@ private:
 	TMap<ESnapping, float>* GetSnappingCategoryByTransition(EGizmoTransition GTransition);
 	float GetDefaultSnappingByTransition(EGizmoTransition GTransition);
 
+public:
+
+	UMaterialInstanceDynamic* MD_GizmoX;
+		UMaterialInstanceDynamic* MD_GizmoSX;
+	UMaterialInstanceDynamic* MD_GizmoY;
+		UMaterialInstanceDynamic* MD_GizmoSY;
+	UMaterialInstanceDynamic* MD_GizmoZ;
+		UMaterialInstanceDynamic* MD_GizmoSZ;
+	UMaterialInstanceDynamic* MD_GizmoPitch;
+	UMaterialInstanceDynamic* MD_GizmoRoll;
+	UMaterialInstanceDynamic* MD_GizmoYaw;
+
 protected:
 
 	AGizmoCharacter* OwnerCharacter;
 	APlayerController* OwnerController;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Gizmo")
+	UGizmoDetectorComponent* GizmoDetector;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Gizmo | Settings")
 	float GizmoTraceDistance = 1000.f;
@@ -148,17 +168,6 @@ private:
 	FVector TouchLocation = FVector::ZeroVector;
 	FVector TouchDirection = FVector::ZeroVector;
 
-
-
-	UMaterialInstanceDynamic* MD_GizmoX;
-		UMaterialInstanceDynamic* MD_GizmoSX;
-	UMaterialInstanceDynamic* MD_GizmoY;
-		UMaterialInstanceDynamic* MD_GizmoSY;
-	UMaterialInstanceDynamic* MD_GizmoZ;
-		UMaterialInstanceDynamic* MD_GizmoSZ;
-	UMaterialInstanceDynamic* MD_GizmoPitch;
-	UMaterialInstanceDynamic* MD_GizmoRoll;
-	UMaterialInstanceDynamic* MD_GizmoYaw;
 
 	/******* Gizmo Snapping **********/
 	UPROPERTY()
