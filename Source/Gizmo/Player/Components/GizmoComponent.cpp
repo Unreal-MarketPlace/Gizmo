@@ -4,6 +4,8 @@
 #include "Gizmo/Player/Components/GizmoComponent.h"
 #include "Gizmo/Library/GizmoMathLibrary.h"
 #include "Gizmo/Player/Components/GizmoDetectorComponent.h"
+#include "Gizmo/GizmoActor/GizmoActorBase.h"
+#include "Gizmo/Interface/GizmoActorInterface.h"
 
 #include "DrawDebugHelpers.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -282,39 +284,22 @@ void UGizmoComponent::AttachDetachGizmo(bool bAttach /* true */)
 void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor)
 {
 
-	SM_GizmoActor = SetGizmoActorCollisionResponse(OnOff, GActor);
+	SetGizmoActorCollisionResponse(OnOff, GActor);
 
 
-	MakeTranslucent(OnOff, SM_GizmoActor, OUT DM_GizmoActor);
+	MakeTranslucent(OnOff, GActor, OUT DM_GizmoActor);
 }
 
 
-UStaticMeshComponent* UGizmoComponent::SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor)
+void UGizmoComponent::SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor)
 {
-	if(!GActor) return NULL;
+	if(!GActor) return;
+	AGizmoActorBase* GA = Cast<AGizmoActorBase>(GActor);
+	if(!GA) return;
 
-	UStaticMeshComponent* GMesh = NULL;
-	if (OnOff)
-	{
-		GMesh = GActor->FindComponentByClass<UStaticMeshComponent>();
+	ECollisionResponse ChannelResponse = OnOff ? ECR_Ignore : ECR_Block;
 
-		GMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
-		GMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
-	}
-	else
-	{
-		GMesh = GActor->FindComponentByClass<UStaticMeshComponent>();
-
-		GMesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
-		GMesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
-
-		GMesh = NULL;
-	}
-
-	//bool isValid = GMesh ? true : false;
-	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::SetGizmoActorCollisionResponse GMesh = %i"), isValid);
-
-	return GMesh;
+	GA->SetActorCollisionResponse(ChannelResponse);
 }
 
 
@@ -323,20 +308,16 @@ void UGizmoComponent::MakeGizmoActorTranslucent(bool OnOff, AActor* GActor, TArr
 {
 	if(!GActor) return;
 
-	UStaticMeshComponent* SM = GActor->FindComponentByClass<UStaticMeshComponent>();
-
-	if(!SM) return;
-
-	MakeTranslucent(OnOff, SM, OUT DM_Materials);
+	MakeTranslucent(OnOff, GActor, OUT DM_Materials);
 }
 
 
-void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
+void UGizmoComponent::MakeTranslucent(bool OnOff, AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Material)
 {
-	if (OnOff && GizmoMesh)
+	if (OnOff)
 	{
 
-		GetGizmoActorDM(GizmoMesh, OUT DM_Material);
+		GetGizmoActorDM(GActor, OUT DM_Material);
 		if (DM_Material.Num() > 0)
 		{
 			for (UMaterialInstanceDynamic* DMItem : DM_Material)
@@ -364,10 +345,15 @@ void UGizmoComponent::MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMes
 
 
 
-void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material)
+void UGizmoComponent::GetGizmoActorDM(AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Material)
 {
-	if (!GizmoMesh) return;
+	if (!GActor) return;
+	AGizmoActorBase* GA = Cast<AGizmoActorBase>(GActor);
+	if(!GA) return;
 
+	GA->GetDynamicMaterials(OUT DM_Material);
+
+	/*
 	TArray<UMaterialInterface*> MI = GizmoMesh->GetMaterials();
 
 	int32 index = 0;
@@ -378,7 +364,7 @@ void UGizmoComponent::GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UM
 		++index;
 		//UE_LOG(LogTemp, Error, TEXR("UGizmoComponent::GetGizmoActorDM"));
 	}
-
+	*/
 }
 
 
@@ -414,7 +400,7 @@ void UGizmoComponent::AttachDeatachActorToGizmoActor(AActor* OtherGizmoActor)
 		TPair<AActor*, FGizmoActorProperty> Pair(OtherGizmoActor, GProperty);
 		TM_OtherGizmoActor.Add(Pair);
 	}
-	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::AttachDeatachActorToGizmoActor OtherGizmoActors Num = %i"), TM_OtherGizmoActor.Num());
+	UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::AttachDeatachActorToGizmoActor OtherGizmoActors Num = %i"), TM_OtherGizmoActor.Num());
 }
 
 void UGizmoComponent::SetGizmoInputMode(bool IsGizmoActive)
@@ -529,6 +515,15 @@ void UGizmoComponent::CoursorTrace(FVector2D& TouchPixel, FVector& TouchPixelLoc
 {
 	FHitResult RHit;
 	CoursorTrace(RHit, OUT TouchPixel, TouchPixelLocation, TouchPixelDirection);
+}
+
+void UGizmoComponent::ReceiveCopyActor(AActor* CopyActor, AActor* TrackActor)
+{
+	//UE_LOG(LogTemp, Error, TEXT("UGizmoComponent::ReceiveCopyActor CopyActor Valid = %i !!!!"), CopyActor ? true : false);
+
+	if(!Cast<AGizmoActorBase>(CopyActor)) return;
+
+	IGizmoActorInterface::Execute_TrackGizmoActor(CopyActor, TrackActor);
 }
 
 void UGizmoComponent::ReleasedGizmoTool()

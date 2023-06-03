@@ -10,6 +10,7 @@
 class UStaticMeshComponent;
 class USceneComponent;
 class UGizmoComponent;
+class AGizmoActorBase;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGizmoDelegate, EGizmoActiveStatus, GizmoActiveStatus);
@@ -97,6 +98,16 @@ protected:
 	AActor* GizmoActor = NULL;
 	UFUNCTION()
 	void OnRep_GizmoActor(AActor* OldGizmoActor);
+
+	UPROPERTY(ReplicatedUsing = OnRep_CopyGizmoActor)
+	AActor* CopiedGizmoActor = NULL;
+	UFUNCTION()
+	void OnRep_CopyGizmoActor();
+	UPROPERTY(Replicated)
+	TArray<AActor*> CopiedOtherGizmoActors;
+
+	UFUNCTION(Server, Reliable)
+	void SR_UpdateCopiedActorCollision(AActor* CopiedActor);
 
 	UPROPERTY(Replicated)
 	TArray<AActor*> OtherGizmoActors;
@@ -243,6 +254,12 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void SR_DropGizmoActor();
 
+	void CopyGizmoActor();
+	UFUNCTION(Server, Reliable)
+	void SR_CopyGizmoActor();
+	UFUNCTION(Server, Reliable)
+	void SR_StopCopyActorReplication();
+
 	void SetGizmoLocationTransition();
 	void SetGizmoRotationTransition();
 	void SetGizmoScaleTransition();
@@ -253,6 +270,10 @@ protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
+
+	FTimerHandle CopyActor_Timer;
+	UPROPERTY(Replicated)
+	bool bCopyCooldown = false;
 
 public:
 	/** Returns CameraBoom subobject **/

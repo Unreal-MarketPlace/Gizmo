@@ -13,6 +13,20 @@ class AGizmoGameMode : public AGameModeBase
 
 public:
 	AGizmoGameMode();
+
+	void StopReplicationWithDelay(AActor* ReplicatedActor, float Delay, ACharacter* InstigatorClient);
+
+private:
+
+	UPROPERTY()
+	TArray<AActor*> ReplicatedActors;
+	int32 ReplicateActorIndex = 0;
+
+	FTimerHandle StopReplication_Timer;
+	FTimerDelegate StopReplication_Delegate;
+
+	UFUNCTION()
+	void StopActorReplication(AActor* ReplicatedActor);
 };
 
 

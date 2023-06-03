@@ -56,6 +56,8 @@ public:
 
 	void CoursorTrace(FHitResult& Hit);
 
+	void ReceiveCopyActor(AActor* CopyActor, AActor* TrackActor);
+
 protected:
 
 	UFUNCTION(Server, Reliable)
@@ -87,10 +89,10 @@ private:
 
 	float UpdateMousePosition(float CurrentPixel, float PassedPixel);
 
-	void MakeTranslucent(bool OnOff, UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
-	void GetGizmoActorDM(UStaticMeshComponent* GizmoMesh, TArray<UMaterialInstanceDynamic*>& DM_Material);
+	void MakeTranslucent(bool OnOff, AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Material);
+	void GetGizmoActorDM(AActor* GActor, TArray<UMaterialInstanceDynamic*>& DM_Material);
 	/* Only for MainGizmo Actor */
-	UStaticMeshComponent* SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor);
+	void SetGizmoActorCollisionResponse(bool OnOff, AActor* GActor);
 	/* */
 	float GetMoveStep(EGizmo TouchAxis, EGizmoTransition GTransitoin, float DeltaTime, const FGizmoMovementData& GizmoMovement);
 

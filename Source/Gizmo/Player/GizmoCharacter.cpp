@@ -12,6 +12,8 @@
 #include "Net/UnrealNetwork.h"
 
 #include "Gizmo/Player/Components/GizmoComponent.h"
+#include "Gizmo/GizmoActor/GizmoActorBase.h"
+#include "Gizmo/GizmoGameMode.h"
 
 
 
@@ -148,6 +150,7 @@ void AGizmoCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAction("CTRL", IE_Released, this, &AGizmoCharacter::CTRL_Released);
 	PlayerInputComponent->BindAction("Delete", IE_Pressed, this, &AGizmoCharacter::DeleteGizmoActor);
 	PlayerInputComponent->BindAction("DropGizmoActor", IE_Pressed, this, &AGizmoCharacter::DropGizmoActor);
+	PlayerInputComponent->BindAction("Copy", IE_Pressed, this, &AGizmoCharacter::CopyGizmoActor);
 
 	PlayerInputComponent->BindAction("One", IE_Pressed, this, &AGizmoCharacter::SetGizmoLocationTransition);
 	PlayerInputComponent->BindAction("Two", IE_Pressed, this, &AGizmoCharacter::SetGizmoRotationTransition);
@@ -298,6 +301,72 @@ void AGizmoCharacter::DropGizmoActor()
 	SR_DropGizmoActor();
 }
 
+
+void AGizmoCharacter::CopyGizmoActor()
+{
+	if(bCopyCooldown) return;
+	bCopyCooldown = true;
+	SR_CopyGizmoActor();
+}
+
+void AGizmoCharacter::SR_CopyGizmoActor_Implementation()
+{
+	bCopyCooldown = true;
+	FActorSpawnParameters SP = FActorSpawnParameters();
+	SP.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	AGizmoGameMode* GM = Cast<AGizmoGameMode>(GetWorld()->GetAuthGameMode());
+
+
+	for (int32 i = 0; i < OtherGizmoActors.Num(); i++)
+	{
+		
+		FTransform T = OtherGizmoActors[i]->GetActorTransform();
+		AActor* CopyA = GetWorld()->SpawnActor<AActor>(OtherGizmoActors[i]->GetClass(), T, SP);
+
+		CopyA->SetReplicates(true);
+		CopiedOtherGizmoActors.Add(CopyA);
+
+		// Set NoCollsion copied Otheractors
+		// For not allow client select copied actor before Tracking end
+		AGizmoActorBase* GA = Cast<AGizmoActorBase>(CopyA);
+		if(GA) GA->SetActorCollisionResponse(ECR_Ignore);
+	}
+
+	if (GizmoActor)
+	{
+		FTransform T = GizmoActor->GetActorTransform();
+		CopiedGizmoActor = GetWorld()->SpawnActor<AActor>(GizmoActor->GetClass(), T, SP);
+		
+		// Set NoCollsion copied MainActor
+		// For not allow client select copied actor before Tracking end
+		AGizmoActorBase* GA = Cast<AGizmoActorBase>(CopiedGizmoActor);
+		if (GA) GA->SetActorCollisionResponse(ECR_Ignore);
+	}
+
+	if(CopiedGizmoActor) CopiedGizmoActor->SetReplicates(true);
+	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_CopyGizmoActor CopyActor Valid = %i !!!!"), CopiedGizmoActor ? true : false);
+
+	if (IsLocallyControlled() && GizmoComponent)
+	{
+		OnRep_CopyGizmoActor();
+	}
+
+
+}
+
+void AGizmoCharacter::SR_StopCopyActorReplication_Implementation()
+{
+	UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_StopCopyActorReplication Stop Copy Actor Replication Other Num = %i !!!!"), OtherGizmoActors.Num());
+	CopiedGizmoActor->SetReplicates(false);
+	for (AActor* OtherActor : CopiedOtherGizmoActors)
+	{
+		OtherActor->SetReplicates(false);
+	}
+	CopiedOtherGizmoActors.Empty();
+	bCopyCooldown = false;
+	//UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_StopCopyActorReplication Stop Copy Actor Replication !!!!"));
+}
 
 void AGizmoCharacter::SetGizmoLocationTransition()
 {
@@ -503,6 +572,49 @@ void AGizmoCharacter::OnRep_GizmoActor(AActor* OldGizmoActor)
 }
 
 
+void AGizmoCharacter::OnRep_CopyGizmoActor()
+{
+	
+	// Track Each copied actor for make Object Translucent and set NoCollision
+	// only LOCAL client
+	if (GizmoComponent)
+	{
+		GizmoComponent->ReceiveCopyActor(CopiedGizmoActor, GizmoActor);
+
+		for (int32 i = 0; i < CopiedOtherGizmoActors.Num(); i++)
+		{
+			GizmoComponent->ReceiveCopyActor(CopiedOtherGizmoActors[i], OtherGizmoActors[i]);
+		}
+		
+	}
+
+	// End Track Each Copied actor for Back Object Collision
+	// only SERVER
+	AGizmoActorBase* GA = Cast<AGizmoActorBase>(CopiedGizmoActor);
+	if(GA) GA->OnEndTrack.AddDynamic(this, &AGizmoCharacter::SR_UpdateCopiedActorCollision);
+
+	for (AActor* a : CopiedOtherGizmoActors)
+	{
+		GA = NULL;
+		GA = Cast<AGizmoActorBase>(a);
+		if(GA) GA->OnEndTrack.AddDynamic(this, &AGizmoCharacter::SR_UpdateCopiedActorCollision);
+	}
+
+	// After little delay set Copied actor in NetDormant mode
+	GetWorldTimerManager().ClearTimer(CopyActor_Timer);
+	GetWorldTimerManager().SetTimer(CopyActor_Timer, this, &AGizmoCharacter::SR_StopCopyActorReplication, 1.f, false);
+}
+
+void AGizmoCharacter::SR_UpdateCopiedActorCollision_Implementation(AActor* CopiedActor)
+{
+	AGizmoActorBase* GA = Cast<AGizmoActorBase>(CopiedActor);
+	if (GA)
+	{
+		GA->SetActorCollisionResponse(ECR_Block);
+		UE_LOG(LogTemp, Error, TEXT("AGizmoCharacter::SR_UpdateCopiedActorCollision Set Actor Block Collision"));
+	}
+}
+
 void AGizmoCharacter::SetOtherGizmoActors(AActor* OtherActor)
 {
 	if(!OtherActor || !GizmoComponent) return;
@@ -554,8 +666,11 @@ void AGizmoCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& Ou
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActor, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, CopiedGizmoActor, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, bCopyCooldown, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, bCTRL, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, OtherGizmoActors, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AGizmoCharacter, CopiedOtherGizmoActors, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AGizmoCharacter, GizmoActvationStatus, COND_OwnerOnly);
 	//DOREPLIFETIME(AGizmoCharacter, GizmoActor);
 	DOREPLIFETIME(AGizmoCharacter, IsGizmoActorValid);
